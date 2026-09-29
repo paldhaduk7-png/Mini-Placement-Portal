@@ -35,9 +35,8 @@ export const registerUser = createAsyncThunk(
   async (studentData: any, { rejectWithValue }) => {
     try {
       const response = await authService.register(studentData)
-      localStorage.setItem('token', response.token)
-      localStorage.setItem('user', JSON.stringify(response.user))
-      localStorage.setItem('role', response.user.role)
+      // Do NOT auto-login or store tokens in localStorage upon registration!
+      // Registration creates the account; the user must log in explicitly on the login page.
       return response
     } catch (err: any) {
       return rejectWithValue(err.message || 'Registration failed')
@@ -117,19 +116,19 @@ export const authSlice = createSlice({
         state.error = (action.payload as string) || 'Login failed'
       })
 
-      // Register
+      // Register (creates account, does not authenticate)
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true
         state.status = 'loading'
         state.error = null
       })
-      .addCase(registerUser.fulfilled, (state, action) => {
+      .addCase(registerUser.fulfilled, (state) => {
         state.isLoading = false
-        state.isAuthenticated = true
+        state.isAuthenticated = false
         state.isInitialized = true
-        state.status = 'authenticated'
-        state.user = action.payload.user
-        state.token = action.payload.token
+        state.status = 'unauthenticated'
+        state.user = null
+        state.token = null
         state.error = null
       })
       .addCase(registerUser.rejected, (state, action) => {

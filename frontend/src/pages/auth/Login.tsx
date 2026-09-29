@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { loginUser } from '@/features/auth/authSlice';
@@ -13,9 +13,10 @@ import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 export const Login: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoading, error, isAuthenticated, isInitialized, user } = useAppSelector((state) => state.auth);
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState((location.state as any)?.email || '');
   const [password, setPassword] = useState('');
 
   // If already authenticated with a valid backend session, redirect to the role's dashboard
