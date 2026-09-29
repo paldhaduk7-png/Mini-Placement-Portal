@@ -4,6 +4,7 @@ import authRoutes from './routes/auth.routes';
 import studentRoutes from './routes/student.routes';
 import tpoStudentRoutes from './routes/tpo-student.routes';
 import companyRoutes from './routes/company.routes';
+import recruitmentDriveRoutes from './routes/recruitment-drive.routes';
 
 const app: Application = express();
 
@@ -16,6 +17,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/tpo/students', tpoStudentRoutes);
 app.use('/api/tpo/companies', companyRoutes);
+
+// Recruitment Drive Routes
+app.use('/api/tpo/drives', recruitmentDriveRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Mini Placement Portal API is running' });
