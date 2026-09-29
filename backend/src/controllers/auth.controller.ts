@@ -30,26 +30,13 @@ export class AuthController {
         diplomaCollege,
       } = req.body;
 
-      // 1. Basic presence and type checks
+      // 1. Basic presence and type checks for account creation
       const missingFields: string[] = [];
       if (!fullName?.trim()) missingFields.push('fullName');
       if (!email?.trim()) missingFields.push('email');
       if (!phone?.trim()) missingFields.push('phone');
       if (!dob) missingFields.push('dob');
       if (!password) missingFields.push('password');
-      if (!studentType) missingFields.push('studentType');
-      if (!department?.trim()) missingFields.push('department');
-
-      if (currentCgpa === undefined || currentCgpa === null) missingFields.push('currentCgpa');
-      if (activeBacklogs === undefined || activeBacklogs === null) missingFields.push('activeBacklogs');
-      if (totalBacklogs === undefined || totalBacklogs === null) missingFields.push('totalBacklogs');
-
-      if (tenthMathsMarks === undefined || tenthMathsMarks === null) missingFields.push('tenthMathsMarks');
-      if (tenthScienceMarks === undefined || tenthScienceMarks === null) missingFields.push('tenthScienceMarks');
-      if (tenthEnglishMarks === undefined || tenthEnglishMarks === null) missingFields.push('tenthEnglishMarks');
-      if (tenthSocialScienceMarks === undefined || tenthSocialScienceMarks === null) missingFields.push('tenthSocialScienceMarks');
-      if (tenthTotalMarks === undefined || tenthTotalMarks === null) missingFields.push('tenthTotalMarks');
-      if (tenthPercentage === undefined || tenthPercentage === null) missingFields.push('tenthPercentage');
 
       if (missingFields.length > 0) {
         res.status(400).json({
@@ -78,128 +65,66 @@ export class AuthController {
         return;
       }
 
-      // 4. StudentType validation
-      if (studentType !== StudentType.REGULAR && studentType !== StudentType.D2D) {
-        res.status(400).json({
-          error: 'Validation Error',
-          message: 'studentType must be either REGULAR or D2D.',
-        });
-        return;
-      }
+      // 4. StudentType validation (if provided)
+      const effectiveStudentType =
+        studentType === StudentType.D2D ? StudentType.D2D : StudentType.REGULAR;
 
-      // 5. REGULAR vs D2D validation
-      if (studentType === StudentType.REGULAR) {
-        if (twelfthPercentage === undefined || twelfthPercentage === null) {
-          res.status(400).json({
-            error: 'Validation Error',
-            message: 'twelfthPercentage is required for REGULAR students.',
-          });
-          return;
-        }
-        const parsed12th = Number(twelfthPercentage);
-        if (isNaN(parsed12th) || parsed12th < 0 || parsed12th > 100) {
-          res.status(400).json({
-            error: 'Validation Error',
-            message: 'twelfthPercentage must be a number between 0 and 100.',
-          });
-          return;
-        }
-      }
+      // 5. Academic details (defaulted safely if registering initially before profile wizard)
+      const effectiveDept = department?.trim() || 'General';
+      const effectiveCgpa =
+        currentCgpa !== undefined && currentCgpa !== null ? Number(currentCgpa) : 0;
+      const effectiveActiveB =
+        activeBacklogs !== undefined && activeBacklogs !== null ? Number(activeBacklogs) : 0;
+      const effectiveTotalB =
+        totalBacklogs !== undefined && totalBacklogs !== null ? Number(totalBacklogs) : 0;
 
-      if (studentType === StudentType.D2D) {
-        if (d2dCgpa === undefined || d2dCgpa === null || !diplomaBranch?.trim() || !diplomaCollege?.trim()) {
-          res.status(400).json({
-            error: 'Validation Error',
-            message: 'd2dCgpa, diplomaBranch, and diplomaCollege are required for D2D students.',
-          });
-          return;
-        }
-        const parsedD2dCgpa = Number(d2dCgpa);
-        if (isNaN(parsedD2dCgpa) || parsedD2dCgpa < 0 || parsedD2dCgpa > 10) {
-          res.status(400).json({
-            error: 'Validation Error',
-            message: 'd2dCgpa must be a number between 0 and 10.',
-          });
-          return;
-        }
-      }
+      const effectiveTenthPercentage =
+        tenthPercentage !== undefined && tenthPercentage !== null ? Number(tenthPercentage) : 0;
+      const effectiveTenthMaths =
+        tenthMathsMarks !== undefined && tenthMathsMarks !== null ? Number(tenthMathsMarks) : 0;
+      const effectiveTenthScience =
+        tenthScienceMarks !== undefined && tenthScienceMarks !== null ? Number(tenthScienceMarks) : 0;
+      const effectiveTenthEnglish =
+        tenthEnglishMarks !== undefined && tenthEnglishMarks !== null ? Number(tenthEnglishMarks) : 0;
+      const effectiveTenthSocial =
+        tenthSocialScienceMarks !== undefined && tenthSocialScienceMarks !== null
+          ? Number(tenthSocialScienceMarks)
+          : 0;
+      const effectiveTenthTotal =
+        tenthTotalMarks !== undefined && tenthTotalMarks !== null ? Number(tenthTotalMarks) : 0;
+      const effectiveTenthMax =
+        tenthMaxMarks !== undefined && tenthMaxMarks !== null ? Number(tenthMaxMarks) : 500;
 
-      // 6. Academic range validations
-      const cgpa = Number(currentCgpa);
-      if (isNaN(cgpa) || cgpa < 0 || cgpa > 10) {
-        res.status(400).json({
-          error: 'Validation Error',
-          message: 'currentCgpa must be a number between 0 and 10.',
-        });
-        return;
-      }
-
-      const activeB = Number(activeBacklogs);
-      const totalB = Number(totalBacklogs);
-      if (isNaN(activeB) || activeB < 0 || isNaN(totalB) || totalB < 0) {
-        res.status(400).json({
-          error: 'Validation Error',
-          message: 'Backlog counts must be non-negative integers.',
-        });
-        return;
-      }
-      if (activeB > totalB) {
-        res.status(400).json({
-          error: 'Validation Error',
-          message: 'Active backlogs cannot exceed total backlogs.',
-        });
-        return;
-      }
-
-      // 7. Std 10 marks and percentage validations
-      const t10Percent = Number(tenthPercentage);
-      if (isNaN(t10Percent) || t10Percent < 0 || t10Percent > 100) {
-        res.status(400).json({
-          error: 'Validation Error',
-          message: 'tenthPercentage must be a number between 0 and 100.',
-        });
-        return;
-      }
-
-      const tMaths = Number(tenthMathsMarks);
-      const tScience = Number(tenthScienceMarks);
-      const tEnglish = Number(tenthEnglishMarks);
-      const tSocial = Number(tenthSocialScienceMarks);
-      const tTotal = Number(tenthTotalMarks);
-      const tMax = tenthMaxMarks !== undefined ? Number(tenthMaxMarks) : 500;
-
-      if ([tMaths, tScience, tEnglish, tSocial, tTotal, tMax].some((m) => isNaN(m) || m < 0)) {
-        res.status(400).json({
-          error: 'Validation Error',
-          message: 'Std 10 subject marks and totals must be non-negative numbers.',
-        });
-        return;
-      }
-
-      // 8. Execute registration
+      // 6. Execute registration
       const responseData = await AuthService.registerStudent({
         fullName,
         email,
         phone,
         dob,
         password,
-        studentType,
-        department,
-        currentCgpa: cgpa,
-        activeBacklogs: activeB,
-        totalBacklogs: totalB,
-        tenthMathsMarks: tMaths,
-        tenthScienceMarks: tScience,
-        tenthEnglishMarks: tEnglish,
-        tenthSocialScienceMarks: tSocial,
+        studentType: effectiveStudentType,
+        department: effectiveDept,
+        currentCgpa: effectiveCgpa,
+        activeBacklogs: effectiveActiveB,
+        totalBacklogs: effectiveTotalB,
+        tenthMathsMarks: effectiveTenthMaths,
+        tenthScienceMarks: effectiveTenthScience,
+        tenthEnglishMarks: effectiveTenthEnglish,
+        tenthSocialScienceMarks: effectiveTenthSocial,
         tenthLanguageMarks: tenthLanguageMarks != null ? Number(tenthLanguageMarks) : null,
-        tenthTotalMarks: tTotal,
-        tenthMaxMarks: tMax,
-        tenthPercentage: t10Percent,
-        twelfthPercentage: studentType === StudentType.REGULAR ? Number(twelfthPercentage) : null,
-        d2dCgpa: studentType === StudentType.D2D ? Number(d2dCgpa) : null,
-        diplomaBranch,
-        diplomaCollege,
+        tenthTotalMarks: effectiveTenthTotal,
+        tenthMaxMarks: effectiveTenthMax,
+        tenthPercentage: effectiveTenthPercentage,
+        twelfthPercentage:
+          effectiveStudentType === StudentType.REGULAR && twelfthPercentage !== undefined && twelfthPercentage !== null
+            ? Number(twelfthPercentage)
+            : null,
+        d2dCgpa:
+          effectiveStudentType === StudentType.D2D && d2dCgpa !== undefined && d2dCgpa !== null
+            ? Number(d2dCgpa)
+            : null,
+        diplomaBranch: effectiveStudentType === StudentType.D2D ? diplomaBranch?.trim() : null,
+        diplomaCollege: effectiveStudentType === StudentType.D2D ? diplomaCollege?.trim() : null,
       });
 
       res.status(201).json(responseData);

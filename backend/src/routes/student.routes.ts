@@ -13,7 +13,11 @@ router.use(requireRole(Role.STUDENT));
 // 1. GET /api/students/me - View authenticated student's profile
 router.get('/me', StudentController.getMe);
 
-// 2. POST /api/students/me/submit - Submit and lock profile
+// 2. PUT / PATCH /api/students/me - Update student profile (when unlocked or rejected)
+router.put('/me', StudentController.updateMe);
+router.patch('/me', StudentController.updateMe);
+
+// 3. POST /api/students/me/submit - Submit and lock profile
 router.post('/me/submit', StudentController.submitProfile);
 
 export default router;
