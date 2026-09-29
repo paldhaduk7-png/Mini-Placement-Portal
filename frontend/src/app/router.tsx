@@ -31,16 +31,26 @@ import { Applications as TPOApplications } from '@/pages/tpo/Applications';
 import { NotFound } from '@/pages/errors/NotFound';
 import { Unauthorized } from '@/pages/errors/Unauthorized';
 
+import { useAppSelector } from '@/hooks/useAppSelector';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+
 // Helper Root Redirect
 const RootRedirect: React.FC = () => {
-  const token = localStorage.getItem('token');
-  const role = localStorage.getItem('role');
+  const { user, isAuthenticated, isInitialized, isLoading } = useAppSelector((state) => state.auth);
 
-  if (!token) {
+  if (!isInitialized || isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+        <LoadingSpinner size="lg" text="Loading Mini Placement Portal..." />
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  if (role === 'TPO') {
+  if (user.role === 'TPO') {
     return <Navigate to="/tpo/dashboard" replace />;
   }
 

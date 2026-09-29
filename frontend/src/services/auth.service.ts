@@ -13,8 +13,18 @@ export const authService = {
   },
 
   async getMe(): Promise<{ message: string; user: User }> {
-    const response = await api.get<{ message: string; user: User }>('/auth/me')
-    return response.data
+    const response = await api.get<{ message: string; user: any }>('/auth/me')
+    const rawUser = response.data.user
+    const normalizedUser: User = {
+      id: rawUser.id || rawUser.userId,
+      email: rawUser.email || '',
+      role: rawUser.role,
+      fullName: rawUser.fullName || '',
+    }
+    return {
+      message: response.data.message,
+      user: normalizedUser,
+    }
   },
 }
 

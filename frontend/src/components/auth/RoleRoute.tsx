@@ -1,6 +1,7 @@
 import React from 'react'
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAppSelector } from '../../hooks/useAppSelector'
+import { LoadingSpinner } from '../common/LoadingSpinner'
 import type { Role } from '../../types/auth'
 
 export function RoleRoute({
@@ -12,16 +13,25 @@ export function RoleRoute({
   allowedRoles?: Role[]
   children?: React.ReactNode
 }) {
-  const { user } = useAppSelector((state) => state.auth)
-  const localRole = (localStorage.getItem('role') as Role) || user?.role
+  const { user, isAuthenticated, isInitialized, isLoading } = useAppSelector((state) => state.auth)
 
-  const roles = allowedRoles || (allowedRole ? [allowedRole] : [])
+  // Wait for session verification before making role-based authorization decision
+  if (!isInitialized || isLoading) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+        <LoadingSpinner size="lg" text="Checking permissions..." />
+      </div>
+    )
+  }
 
-  if (!localRole) {
+  if (!isAuthenticated || !user) {
     return <Navigate to="/login" replace />
   }
 
-  if (roles.length > 0 && !roles.includes(localRole)) {
+  const roles = allowedRoles || (allowedRole ? [allowedRole] : [])
+  const verifiedRole = user.role
+
+  if (roles.length > 0 && !roles.includes(verifiedRole)) {
     return <Navigate to="/unauthorized" replace />
   }
 

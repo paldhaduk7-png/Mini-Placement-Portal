@@ -31,6 +31,7 @@ api.interceptors.response.use(
       if (!currentPath.includes('/login') && !currentPath.includes('/register')) {
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+        localStorage.removeItem('role')
       }
     }
 

@@ -8,13 +8,35 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { GraduationCap, Mail, Lock, ShieldCheck, ArrowRight } from 'lucide-react';
 
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+
 export const Login: React.FC = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { isLoading, error } = useAppSelector((state) => state.auth);
+  const { isLoading, error, isAuthenticated, isInitialized, user } = useAppSelector((state) => state.auth);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // If already authenticated with a valid backend session, redirect to the role's dashboard
+  React.useEffect(() => {
+    if (isInitialized && isAuthenticated && user) {
+      if (user.role === 'TPO') {
+        navigate('/tpo/dashboard', { replace: true });
+      } else {
+        navigate('/student/dashboard', { replace: true });
+      }
+    }
+  }, [isInitialized, isAuthenticated, user, navigate]);
+
+  // Show loading indicator while session verification is running
+  if (!isInitialized) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
+        <LoadingSpinner size="lg" text="Checking session..." />
+      </div>
+    );
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -2,25 +2,16 @@ import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { AuthState, LoginResponse, User } from '../../types/auth'
 import authService from '../../services/auth.service'
 
-// Restore from localStorage
+// Initial token from localStorage
 const storedToken = localStorage.getItem('token')
-const storedUserJson = localStorage.getItem('user')
-let initialUser: User | null = null
-
-if (storedUserJson) {
-  try {
-    initialUser = JSON.parse(storedUserJson)
-  } catch {
-    localStorage.removeItem('user')
-    localStorage.removeItem('role')
-  }
-}
 
 const initialState: AuthState = {
-  user: initialUser,
+  user: null,
   token: storedToken,
-  isAuthenticated: !!storedToken && !!initialUser,
-  isLoading: false,
+  isAuthenticated: false,
+  isInitialized: !storedToken,
+  isLoading: !!storedToken,
+  status: storedToken ? 'loading' : 'unauthenticated',
   error: null,
 }
 
@@ -59,8 +50,6 @@ export const fetchCurrentUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const response = await authService.getMe()
-      localStorage.setItem('user', JSON.stringify(response.user))
-      localStorage.setItem('role', response.user.role)
       return response.user
     } catch (err: any) {
       return rejectWithValue(err.message || 'Session expired')
@@ -79,6 +68,9 @@ export const authSlice = createSlice({
       state.user = action.payload.user
       state.token = action.payload.token
       state.isAuthenticated = true
+      state.isInitialized = true
+      state.isLoading = false
+      state.status = 'authenticated'
       state.error = null
       localStorage.setItem('token', action.payload.token)
       localStorage.setItem('user', JSON.stringify(action.payload.user))
@@ -88,6 +80,9 @@ export const authSlice = createSlice({
       state.user = null
       state.token = null
       state.isAuthenticated = false
+      state.isInitialized = true
+      state.isLoading = false
+      state.status = 'unauthenticated'
       state.error = null
       localStorage.removeItem('token')
       localStorage.removeItem('user')
@@ -102,11 +97,14 @@ export const authSlice = createSlice({
       // Login
       .addCase(loginUser.pending, (state) => {
         state.isLoading = true
+        state.status = 'loading'
         state.error = null
       })
       .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginResponse>) => {
         state.isLoading = false
         state.isAuthenticated = true
+        state.isInitialized = true
+        state.status = 'authenticated'
         state.user = action.payload.user
         state.token = action.payload.token
         state.error = null
@@ -114,35 +112,56 @@ export const authSlice = createSlice({
       .addCase(loginUser.rejected, (state, action) => {
         state.isLoading = false
         state.isAuthenticated = false
+        state.isInitialized = true
+        state.status = 'unauthenticated'
         state.error = (action.payload as string) || 'Login failed'
       })
 
       // Register
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true
+        state.status = 'loading'
         state.error = null
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false
         state.isAuthenticated = true
+        state.isInitialized = true
+        state.status = 'authenticated'
         state.user = action.payload.user
         state.token = action.payload.token
         state.error = null
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false
+        state.isAuthenticated = false
+        state.isInitialized = true
+        state.status = 'unauthenticated'
         state.error = (action.payload as string) || 'Registration failed'
       })
 
       // Fetch Me
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.isLoading = true
+        state.status = 'loading'
+      })
       .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.isLoading = false
         state.user = action.payload
         state.isAuthenticated = true
+        state.isInitialized = true
+        state.status = 'authenticated'
+        state.error = null
+        localStorage.setItem('user', JSON.stringify(action.payload))
+        localStorage.setItem('role', action.payload.role)
       })
       .addCase(fetchCurrentUser.rejected, (state) => {
+        state.isLoading = false
         state.user = null
         state.token = null
         state.isAuthenticated = false
+        state.isInitialized = true
+        state.status = 'unauthenticated'
         localStorage.removeItem('token')
         localStorage.removeItem('user')
         localStorage.removeItem('role')
