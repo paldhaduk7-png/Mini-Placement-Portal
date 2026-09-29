@@ -226,12 +226,7 @@ export class EligibilityService {
     const result = this.checkStudentEligibility(student, drive);
 
     return {
-      drive: {
-        id: drive.id,
-        role: drive.role,
-        deadline: drive.deadline,
-        company: drive.company,
-      },
+      drive,
       eligible: result.eligible,
       reasons: result.reasons,
     };

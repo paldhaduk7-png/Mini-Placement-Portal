@@ -35,6 +35,7 @@ app.use('/api/tpo/applications', tpoApplicationRouter);
 
 // Recruitment Drive Routes
 app.use('/api/tpo/drives', recruitmentDriveRoutes);
+app.use('/api/student/drives', recruitmentDriveRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Mini Placement Portal API is running' });
