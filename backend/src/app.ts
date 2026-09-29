@@ -2,6 +2,7 @@ import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import studentRoutes from './routes/student.routes';
+import tpoStudentRoutes from './routes/tpo-student.routes';
 
 const app: Application = express();
 
@@ -12,6 +13,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
+app.use('/api/tpo/students', tpoStudentRoutes);
 
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Mini Placement Portal API is running' });
