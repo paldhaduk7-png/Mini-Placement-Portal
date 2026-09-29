@@ -8,6 +8,11 @@ export const studentService = {
     return response.data
   },
 
+  async updateProfile(data: any): Promise<{ message: string; student: Student }> {
+    const response = await api.put<{ message: string; student: Student }>('/students/me', data)
+    return response.data
+  },
+
   async submitProfile(): Promise<{ message: string; student: Student }> {
     const response = await api.post<{ message: string; student: Student }>('/students/me/submit')
     return response.data

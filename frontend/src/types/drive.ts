@@ -37,14 +37,5 @@ export interface RecruitmentDrive {
 export interface EligibilityResult {
   eligible: boolean
   reasons: string[]
-  drive?: {
-    id: string
-    role: string
-    deadline: string
-    company?: {
-      id: string
-      name: string
-      imageUrl?: string | null
-    }
-  }
+  drive?: RecruitmentDrive
 }

@@ -28,6 +28,18 @@ export const fetchStudentProfile = createAsyncThunk(
   }
 )
 
+export const updateStudentProfile = createAsyncThunk(
+  'student/updateProfile',
+  async (formData: any, { rejectWithValue }) => {
+    try {
+      const data = await studentService.updateProfile(formData)
+      return data.student
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to update profile')
+    }
+  }
+)
+
 export const submitStudentProfile = createAsyncThunk(
   'student/submitProfile',
   async (_, { rejectWithValue }) => {
@@ -65,6 +77,21 @@ export const studentSlice = createSlice({
       .addCase(fetchStudentProfile.rejected, (state, action) => {
         state.isLoading = false
         state.error = (action.payload as string) || 'Failed to fetch student profile'
+      })
+
+      // Update Profile
+      .addCase(updateStudentProfile.pending, (state) => {
+        state.isSubmitting = true
+        state.error = null
+      })
+      .addCase(updateStudentProfile.fulfilled, (state, action: PayloadAction<Student>) => {
+        state.isSubmitting = false
+        state.profile = action.payload
+        state.error = null
+      })
+      .addCase(updateStudentProfile.rejected, (state, action) => {
+        state.isSubmitting = false
+        state.error = (action.payload as string) || 'Failed to update profile'
       })
 
       // Submit Profile

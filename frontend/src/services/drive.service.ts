@@ -41,6 +41,17 @@ export const driveService = {
     return response.data
   },
 
+  // Student Drive Methods
+  async getStudentDrives(params?: any): Promise<{ success?: boolean; count?: number; data: RecruitmentDrive[] }> {
+    const response = await api.get('/student/drives', { params })
+    return response.data
+  },
+
+  async getStudentDriveById(id: string): Promise<{ success?: boolean; data: RecruitmentDrive }> {
+    const response = await api.get(`/student/drives/${id}`)
+    return response.data
+  },
+
   // Student check eligibility for a drive
   async checkEligibility(driveId: string): Promise<{ success: boolean; data: EligibilityResult }> {
     const response = await api.get<{ success: boolean; data: EligibilityResult }>(
