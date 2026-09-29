@@ -5,6 +5,7 @@ import studentRoutes from './routes/student.routes';
 import tpoStudentRoutes from './routes/tpo-student.routes';
 import companyRoutes from './routes/company.routes';
 import recruitmentDriveRoutes from './routes/recruitment-drive.routes';
+import { tpoEligibilityRouter, studentEligibilityRouter } from './routes/eligibility.routes';
 
 const app: Application = express();
 
@@ -17,6 +18,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/tpo/students', tpoStudentRoutes);
 app.use('/api/tpo/companies', companyRoutes);
+
+// Eligibility Routes
+app.use('/api/tpo/drives', tpoEligibilityRouter);
+app.use('/api/student/drives', studentEligibilityRouter);
 
 // Recruitment Drive Routes
 app.use('/api/tpo/drives', recruitmentDriveRoutes);
