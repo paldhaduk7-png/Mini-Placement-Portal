@@ -28,6 +28,7 @@ export class AuthController {
         d2dCgpa,
         diplomaBranch,
         diplomaCollege,
+        profilePhoto,
       } = req.body;
 
       // 1. Basic presence and type checks for account creation
@@ -95,6 +96,18 @@ export class AuthController {
       const effectiveTenthMax =
         tenthMaxMarks !== undefined && tenthMaxMarks !== null ? Number(tenthMaxMarks) : 500;
 
+      let uploadedPhotoUrl: string | null = null;
+      if (profilePhoto && typeof profilePhoto === 'string' && profilePhoto.startsWith('data:image')) {
+        try {
+          const { uploadToCloudinary } = await import('../config/cloudinary');
+          const result = await uploadToCloudinary(profilePhoto);
+          uploadedPhotoUrl = result.secureUrl;
+        } catch (uploadError: any) {
+          console.error('Profile photo upload error:', uploadError);
+          // Non-blocking error, user can still register
+        }
+      }
+
       // 6. Execute registration
       const responseData = await AuthService.registerStudent({
         fullName,
@@ -125,6 +138,7 @@ export class AuthController {
             : null,
         diplomaBranch: effectiveStudentType === StudentType.D2D ? diplomaBranch?.trim() : null,
         diplomaCollege: effectiveStudentType === StudentType.D2D ? diplomaCollege?.trim() : null,
+        profilePhoto: uploadedPhotoUrl,
       });
 
       res.status(201).json(responseData);

@@ -74,6 +74,7 @@ model Student {
   currentCgpa             Float
   activeBacklogs          Int                @default(0)
   totalBacklogs           Int                @default(0)
+  profilePhoto            String?
 
   // Std 10 Subject Marks Breakdown
   tenthMathsMarks         Float

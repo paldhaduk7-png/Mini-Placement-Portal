@@ -27,6 +27,7 @@ export interface RegisterStudentInput {
   d2dCgpa?: number | null;
   diplomaBranch?: string | null;
   diplomaCollege?: string | null;
+  profilePhoto?: string | null;
 }
 
 export interface LoginInput {
@@ -104,6 +105,7 @@ export class AuthService {
             input.studentType === StudentType.D2D ? input.diplomaBranch?.trim() : null,
           diplomaCollege:
             input.studentType === StudentType.D2D ? input.diplomaCollege?.trim() : null,
+          profilePhoto: input.profilePhoto ?? null,
           isProfileLocked: false,
           verificationStatus: VerificationStatus.PENDING,
         },

@@ -53,7 +53,23 @@ export class StudentController {
         return;
       }
 
-      const updated = await StudentService.updateStudentProfile(userId, req.body);
+      const data = { ...req.body };
+
+      let uploadedPhotoUrl: string | null = null;
+      if (data.profilePhoto && typeof data.profilePhoto === 'string' && data.profilePhoto.startsWith('data:image')) {
+        try {
+          const { uploadToCloudinary } = await import('../config/cloudinary');
+          const result = await uploadToCloudinary(data.profilePhoto);
+          uploadedPhotoUrl = result.secureUrl;
+          data.profilePhoto = uploadedPhotoUrl;
+        } catch (uploadError: any) {
+          console.error('Profile photo upload error:', uploadError);
+          // Delete from payload so it doesn't try to save base64 if it failed
+          delete data.profilePhoto;
+        }
+      }
+
+      const updated = await StudentService.updateStudentProfile(userId, data);
       res.status(200).json({
         message: 'Profile updated successfully.',
         student: updated,

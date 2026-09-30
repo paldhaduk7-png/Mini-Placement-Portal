@@ -105,6 +105,9 @@ export class StudentService {
     if (data.diplomaCollege !== undefined) {
       updateData.diplomaCollege = data.diplomaCollege ? String(data.diplomaCollege).trim() : null;
     }
+    if (data.profilePhoto !== undefined) {
+      updateData.profilePhoto = data.profilePhoto ? String(data.profilePhoto).trim() : null;
+    }
 
     const updatedStudent = await prisma.student.update({
       where: { userId },
