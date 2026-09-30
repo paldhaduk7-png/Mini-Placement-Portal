@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { loginUser } from '@/features/auth/authSlice';
+import { loginUser, logout } from '@/features/auth/authSlice';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -64,6 +64,17 @@ export const Login: React.FC = () => {
       );
       if (loginUser.fulfilled.match(resultAction)) {
         const loggedUser = resultAction.payload.user;
+
+        if (activeTab !== loggedUser.role) {
+          dispatch(logout());
+          if (loggedUser.role === 'STUDENT') {
+            toast.error('Account found. Please login from the Student tab.');
+          } else {
+            toast.error('Account found. Please login from the TPO tab.');
+          }
+          return;
+        }
+
         toast.success(`Welcome back!`);
 
         // Redirect according to real user role returned by backend

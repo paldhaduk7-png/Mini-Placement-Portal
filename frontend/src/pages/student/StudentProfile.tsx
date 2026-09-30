@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -33,6 +34,7 @@ export const StudentProfile: React.FC = () => {
   const dispatch = useAppDispatch();
   const { profile, isLoading, isSubmitting } = useAppSelector((state) => state.student);
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
+  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isEditingRejected, setIsEditingRejected] = useState(false);
 
   // Form State for Steps 1 & 2
@@ -44,6 +46,14 @@ export const StudentProfile: React.FC = () => {
     studentType: 'REGULAR' as StudentType,
     department: 'Computer Science and Engineering',
     tenthPercentage: '',
+    tenthMathsMarks: '',
+    tenthScienceMarks: '',
+    tenthEnglishMarks: '',
+    tenthSocialScienceMarks: '',
+    tenthGujaratiMarks: '',
+    tenthLanguageMarks: '',
+    tenthTotalMarks: '',
+    tenthMaxMarks: '600',
     twelfthPercentage: '',
     currentCgpa: '',
     activeBacklogs: '0',
@@ -68,6 +78,14 @@ export const StudentProfile: React.FC = () => {
         studentType: profile.studentType || 'REGULAR',
         department: profile.department || 'Computer Science and Engineering',
         tenthPercentage: profile.tenthPercentage ? String(profile.tenthPercentage) : '',
+        tenthMathsMarks: profile.tenthMathsMarks ? String(profile.tenthMathsMarks) : '',
+        tenthScienceMarks: profile.tenthScienceMarks ? String(profile.tenthScienceMarks) : '',
+        tenthEnglishMarks: profile.tenthEnglishMarks ? String(profile.tenthEnglishMarks) : '',
+        tenthSocialScienceMarks: profile.tenthSocialScienceMarks ? String(profile.tenthSocialScienceMarks) : '',
+        tenthGujaratiMarks: '', // DB limitation: No dedicated field for Gujarati yet
+        tenthLanguageMarks: profile.tenthLanguageMarks ? String(profile.tenthLanguageMarks) : '',
+        tenthTotalMarks: profile.tenthTotalMarks ? String(profile.tenthTotalMarks) : '',
+        tenthMaxMarks: '600',
         twelfthPercentage: profile.twelfthPercentage ? String(profile.twelfthPercentage) : '',
         currentCgpa: profile.currentCgpa ? String(profile.currentCgpa) : '',
         activeBacklogs: profile.activeBacklogs !== undefined ? String(profile.activeBacklogs) : '0',
@@ -78,6 +96,52 @@ export const StudentProfile: React.FC = () => {
       });
     }
   }, [profile]);
+
+  // Auto-calculate 10th Total and Percentage
+  useEffect(() => {
+    const maths = formData.tenthMathsMarks !== '' ? Number(formData.tenthMathsMarks) : null;
+    const science = formData.tenthScienceMarks !== '' ? Number(formData.tenthScienceMarks) : null;
+    const english = formData.tenthEnglishMarks !== '' ? Number(formData.tenthEnglishMarks) : null;
+    const social = formData.tenthSocialScienceMarks !== '' ? Number(formData.tenthSocialScienceMarks) : null;
+    const gujarati = formData.tenthGujaratiMarks !== '' ? Number(formData.tenthGujaratiMarks) : null;
+    const language = formData.tenthLanguageMarks !== '' ? Number(formData.tenthLanguageMarks) : null;
+    
+    const hasAnyMarks = maths !== null || science !== null || english !== null || social !== null || gujarati !== null || language !== null;
+    
+    if (hasAnyMarks) {
+      const total = (maths || 0) + (science || 0) + (english || 0) + (social || 0) + (gujarati || 0) + (language || 0);
+      const percentage = ((total / 600) * 100).toFixed(2);
+      
+      setFormData(prev => {
+        if (prev.tenthTotalMarks === String(total) && prev.tenthPercentage === percentage && prev.tenthMaxMarks === '600') {
+          return prev;
+        }
+        return {
+          ...prev,
+          tenthTotalMarks: String(total),
+          tenthMaxMarks: '600',
+          tenthPercentage: percentage
+        };
+      });
+    } else {
+      setFormData(prev => {
+        if (prev.tenthTotalMarks === '' && prev.tenthPercentage === '' && prev.tenthMaxMarks === '600') return prev;
+        return {
+          ...prev,
+          tenthTotalMarks: '',
+          tenthMaxMarks: '600',
+          tenthPercentage: ''
+        };
+      });
+    }
+  }, [
+    formData.tenthMathsMarks,
+    formData.tenthScienceMarks,
+    formData.tenthEnglishMarks,
+    formData.tenthSocialScienceMarks,
+    formData.tenthGujaratiMarks,
+    formData.tenthLanguageMarks
+  ]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -103,6 +167,42 @@ export const StudentProfile: React.FC = () => {
   };
 
   const validateStep2 = () => {
+    const maths = Number(formData.tenthMathsMarks);
+    const science = Number(formData.tenthScienceMarks);
+    const english = Number(formData.tenthEnglishMarks);
+    const social = Number(formData.tenthSocialScienceMarks);
+    const gujarati = Number(formData.tenthGujaratiMarks);
+    const language = Number(formData.tenthLanguageMarks);
+    const total = Number(formData.tenthTotalMarks);
+    const max = Number(formData.tenthMaxMarks);
+
+    if (
+      formData.tenthMathsMarks === '' || isNaN(maths) || maths < 0 || maths > 100 ||
+      formData.tenthScienceMarks === '' || isNaN(science) || science < 0 || science > 100 ||
+      formData.tenthEnglishMarks === '' || isNaN(english) || english < 0 || english > 100 ||
+      formData.tenthSocialScienceMarks === '' || isNaN(social) || social < 0 || social > 100 ||
+      formData.tenthGujaratiMarks === '' || isNaN(gujarati) || gujarati < 0 || gujarati > 100 ||
+      formData.tenthLanguageMarks === '' || isNaN(language) || language < 0 || language > 100
+    ) {
+      toast.error('Please enter valid marks (0-100) for all 6 Class 10 subjects');
+      return false;
+    }
+
+    if (!formData.tenthTotalMarks || isNaN(total) || total <= 0) {
+      toast.error('Please enter valid 10th total marks');
+      return false;
+    }
+
+    if (!formData.tenthMaxMarks || isNaN(max) || max <= 0) {
+      toast.error('Please enter valid 10th max marks');
+      return false;
+    }
+    
+    if (total > max) {
+      toast.error('Total marks cannot exceed max marks');
+      return false;
+    }
+
     const tenth = Number(formData.tenthPercentage);
     if (!formData.tenthPercentage || isNaN(tenth) || tenth < 0 || tenth > 100) {
       toast.error('Please enter a valid 10th percentage (0-100)');
@@ -164,6 +264,13 @@ export const StudentProfile: React.FC = () => {
         studentType: formData.studentType,
         department: formData.department,
         tenthPercentage: Number(formData.tenthPercentage),
+        tenthMathsMarks: Number(formData.tenthMathsMarks),
+        tenthScienceMarks: Number(formData.tenthScienceMarks),
+        tenthEnglishMarks: Number(formData.tenthEnglishMarks),
+        tenthSocialScienceMarks: Number(formData.tenthSocialScienceMarks),
+        tenthLanguageMarks: formData.tenthLanguageMarks ? Number(formData.tenthLanguageMarks) : null,
+        tenthTotalMarks: Number(formData.tenthTotalMarks),
+        tenthMaxMarks: Number(formData.tenthMaxMarks),
         currentCgpa: Number(formData.currentCgpa),
         activeBacklogs: Number(formData.activeBacklogs),
         totalBacklogs: Number(formData.totalBacklogs) || Number(formData.activeBacklogs),
@@ -352,9 +459,22 @@ export const StudentProfile: React.FC = () => {
             </div>
             <CardContent className="p-5">
               <dl className="space-y-3 text-xs">
-                <div className="flex justify-between py-1 border-b border-slate-50">
-                  <dt className="text-slate-500 font-medium">10th Percentage:</dt>
-                  <dd className="font-bold text-slate-900">{profile.tenthPercentage}%</dd>
+                <div className="flex flex-col py-2 border-b border-slate-50 gap-2">
+                  <div className="flex justify-between">
+                    <dt className="text-slate-500 font-medium">10th Details:</dt>
+                    <dd className="font-bold text-slate-900">
+                      {profile.tenthPercentage}% ({profile.tenthTotalMarks}/{profile.tenthMaxMarks})
+                    </dd>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-slate-700 bg-slate-50 p-2 rounded-md">
+                    <div className="flex justify-between"><span>Maths:</span> <span className="font-semibold">{profile.tenthMathsMarks}</span></div>
+                    <div className="flex justify-between"><span>Science:</span> <span className="font-semibold">{profile.tenthScienceMarks}</span></div>
+                    <div className="flex justify-between"><span>English:</span> <span className="font-semibold">{profile.tenthEnglishMarks}</span></div>
+                    <div className="flex justify-between"><span>Social:</span> <span className="font-semibold">{profile.tenthSocialScienceMarks}</span></div>
+                    {profile.tenthLanguageMarks != null && (
+                      <div className="flex justify-between"><span>Language:</span> <span className="font-semibold">{profile.tenthLanguageMarks}</span></div>
+                    )}
+                  </div>
                 </div>
                 {profile.studentType === 'REGULAR' ? (
                   <div className="flex justify-between py-1 border-b border-slate-50">
@@ -397,7 +517,7 @@ export const StudentProfile: React.FC = () => {
   // VIEW B: EDITABLE 3-STEP WIZARD (STEPS 5, 6, 7 in workflow diagram)
   // -------------------------------------------------------------
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-4">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
@@ -409,7 +529,7 @@ export const StudentProfile: React.FC = () => {
       </div>
 
       {/* Stepper Indicator */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+      <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs">
         <div className="flex items-center justify-between max-w-xl mx-auto">
           {/* Step 1 */}
           <button
@@ -418,7 +538,7 @@ export const StudentProfile: React.FC = () => {
             className="flex items-center gap-2 cursor-pointer focus:outline-none"
           >
             <div
-              className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+              className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                 activeStep === 1
                   ? 'bg-blue-600 text-white'
                   : activeStep > 1
@@ -426,10 +546,10 @@ export const StudentProfile: React.FC = () => {
                   : 'bg-slate-100 text-slate-500'
               }`}
             >
-              {activeStep > 1 ? <Check className="h-4 w-4" /> : '1'}
+              {activeStep > 1 ? <Check className="h-3 w-3" /> : '1'}
             </div>
             <span
-              className={`text-xs ${
+              className={`text-[11px] ${
                 activeStep === 1 ? 'text-blue-700 font-bold' : 'text-slate-600 font-medium'
               }`}
             >
@@ -438,7 +558,7 @@ export const StudentProfile: React.FC = () => {
           </button>
 
           <div
-            className={`h-0.5 flex-1 mx-3 ${
+            className={`h-0.5 flex-1 mx-2 ${
               activeStep > 1 ? 'bg-emerald-500' : 'bg-slate-200'
             }`}
           />
@@ -452,7 +572,7 @@ export const StudentProfile: React.FC = () => {
             className="flex items-center gap-2 cursor-pointer focus:outline-none"
           >
             <div
-              className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+              className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                 activeStep === 2
                   ? 'bg-blue-600 text-white'
                   : activeStep > 2
@@ -460,10 +580,10 @@ export const StudentProfile: React.FC = () => {
                   : 'bg-slate-100 text-slate-500'
               }`}
             >
-              {activeStep > 2 ? <Check className="h-4 w-4" /> : '2'}
+              {activeStep > 2 ? <Check className="h-3 w-3" /> : '2'}
             </div>
             <span
-              className={`text-xs ${
+              className={`text-[11px] ${
                 activeStep === 2 ? 'text-blue-700 font-bold' : 'text-slate-600 font-medium'
               }`}
             >
@@ -472,7 +592,7 @@ export const StudentProfile: React.FC = () => {
           </button>
 
           <div
-            className={`h-0.5 flex-1 mx-3 ${
+            className={`h-0.5 flex-1 mx-2 ${
               activeStep > 2 ? 'bg-emerald-500' : 'bg-slate-200'
             }`}
           />
@@ -486,7 +606,7 @@ export const StudentProfile: React.FC = () => {
             className="flex items-center gap-2 cursor-pointer focus:outline-none"
           >
             <div
-              className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+              className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
                 activeStep === 3
                   ? 'bg-blue-600 text-white'
                   : 'bg-slate-100 text-slate-500'
@@ -495,7 +615,7 @@ export const StudentProfile: React.FC = () => {
               3
             </div>
             <span
-              className={`text-xs ${
+              className={`text-[11px] ${
                 activeStep === 3 ? 'text-blue-700 font-bold' : 'text-slate-600 font-medium'
               }`}
             >
@@ -505,126 +625,137 @@ export const StudentProfile: React.FC = () => {
         </div>
       </div>
 
-      {/* STEP 1: PERSONAL INFORMATION (Reference Panel 5) */}
+      {/* STEP 1: PERSONAL INFORMATION */}
       {activeStep === 1 && (
         <Card className="border-slate-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <div className="bg-slate-50/50 px-5 py-3 border-b border-slate-100 flex items-center gap-2">
             <User className="h-4 w-4 text-blue-600" />
-            <h3 className="font-bold text-slate-900 text-sm">Personal Information</h3>
-          </div>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="text"
-                  name="fullName"
-                  value={formData.fullName}
-                  onChange={handleChange}
-                  placeholder="e.g. Bhargav Radadiya"
-                  className="text-xs h-9.5"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  disabled
-                  className="text-xs h-9.5 bg-slate-50 text-slate-500 cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Phone Number <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="e.g. 9876543210"
-                  className="text-xs h-9.5"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Date of Birth <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="date"
-                  name="dob"
-                  value={formData.dob}
-                  onChange={handleChange}
-                  className="text-xs h-9.5"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Student Type Selection */}
-            <div className="pt-2">
-              <label className="text-xs font-semibold text-slate-700 block mb-2">
-                Student Type <span className="text-red-500">*</span>
-              </label>
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
-                  <input
-                    type="radio"
-                    name="studentType"
-                    value="REGULAR"
-                    checked={formData.studentType === 'REGULAR'}
-                    onChange={handleChange}
-                    className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                  />
-                  Regular Student
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
-                  <input
-                    type="radio"
-                    name="studentType"
-                    value="D2D"
-                    checked={formData.studentType === 'D2D'}
-                    onChange={handleChange}
-                    className="text-blue-600 focus:ring-blue-500 h-4 w-4"
-                  />
-                  D2D Student
-                </label>
-              </div>
-            </div>
-
             <div>
-              <label className="text-xs font-semibold text-slate-700 block mb-1">
-                Department <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                className="w-full h-9.5 px-3 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {DEPARTMENTS.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
+              <h3 className="font-bold text-slate-900 text-sm">Personal Information</h3>
+            </div>
+          </div>
+          <CardContent className="p-5 space-y-5">
+            {/* Group 1: Basic Details */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1.5">
+                Basic Details
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleChange}
+                    placeholder="e.g. Bhargav Radadiya"
+                    className="text-xs h-8"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Email <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    disabled
+                    className="text-xs h-8 bg-slate-50 text-slate-500 cursor-not-allowed"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="e.g. 9876543210"
+                    className="text-xs h-8"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Date of Birth <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="date"
+                    name="dob"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    className="text-xs h-8"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Group 2: Academic Path */}
+            <div className="space-y-3 pt-1">
+              <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1.5">
+                Academic Path
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1.5">
+                    Student Type <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex items-center gap-6 h-8">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
+                      <input
+                        type="radio"
+                        name="studentType"
+                        value="REGULAR"
+                        checked={formData.studentType === 'REGULAR'}
+                        onChange={handleChange}
+                        className="text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                      />
+                      Regular Student
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-slate-800">
+                      <input
+                        type="radio"
+                        name="studentType"
+                        value="D2D"
+                        checked={formData.studentType === 'D2D'}
+                        onChange={handleChange}
+                        className="text-blue-600 focus:ring-blue-500 h-3.5 w-3.5"
+                      />
+                      D2D Student
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Department <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="department"
+                    value={formData.department}
+                    onChange={handleChange}
+                    className="w-full h-8 px-3 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {DEPARTMENTS.map((dept) => (
+                      <option key={dept} value={dept}>
+                        {dept}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end pt-4 border-t border-slate-100">
               <Button
                 onClick={handleNextStep1}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 h-9"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 h-8"
               >
                 Next
                 <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
@@ -634,117 +765,160 @@ export const StudentProfile: React.FC = () => {
         </Card>
       )}
 
-      {/* STEP 2: ACADEMIC DETAILS (Reference Panel 6) */}
+      {/* STEP 2: ACADEMIC DETAILS */}
       {activeStep === 2 && (
         <Card className="border-slate-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <div className="bg-slate-50/50 px-5 py-3 border-b border-slate-100 flex items-center gap-2">
             <GraduationCap className="h-4 w-4 text-blue-600" />
-            <h3 className="font-bold text-slate-900 text-sm">Academic Information</h3>
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Academic Information</h3>
+            </div>
           </div>
-          <CardContent className="p-6 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* D2D Specific Fields */}
-              {formData.studentType === 'D2D' && (
-                <>
+          <CardContent className="p-5 space-y-5">
+            
+            {/* Section 1: 10th Standard */}
+            <div className="space-y-3">
+              <div>
+                <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1.5">
+                  10th Standard
+                </h4>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Subject Marks - 8 columns */}
+                <div className="col-span-1 md:col-span-8 grid grid-cols-2 md:grid-cols-3 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Diploma College <span className="text-red-500">*</span>
-                    </label>
-                    <Input
-                      type="text"
-                      name="diplomaCollege"
-                      value={formData.diplomaCollege}
-                      onChange={handleChange}
-                      placeholder="e.g. Government Polytechnic, Ahmedabad"
-                      className="text-xs h-9.5"
-                      required
-                    />
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Mathematics <span className="text-red-500">*</span></label>
+                    <Input type="number" name="tenthMathsMarks" value={formData.tenthMathsMarks} onChange={handleChange} className="text-xs h-8" required />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Diploma CGPA <span className="text-red-500">*</span>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Science <span className="text-red-500">*</span></label>
+                    <Input type="number" name="tenthScienceMarks" value={formData.tenthScienceMarks} onChange={handleChange} className="text-xs h-8" required />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">English <span className="text-red-500">*</span></label>
+                    <Input type="number" name="tenthEnglishMarks" value={formData.tenthEnglishMarks} onChange={handleChange} className="text-xs h-8" required />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Social Science <span className="text-red-500">*</span></label>
+                    <Input type="number" name="tenthSocialScienceMarks" value={formData.tenthSocialScienceMarks} onChange={handleChange} className="text-xs h-8" required />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Gujarati <span className="text-red-500">*</span></label>
+                    <Input type="number" name="tenthGujaratiMarks" value={formData.tenthGujaratiMarks} onChange={handleChange} className="text-xs h-8" required />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">Optional Language <span className="text-red-500">*</span></label>
+                    <Input type="number" name="tenthLanguageMarks" value={formData.tenthLanguageMarks} onChange={handleChange} className="text-xs h-8" required />
+                  </div>
+                </div>
+
+                {/* Summary - 4 columns */}
+                <div className="col-span-1 md:col-span-4 bg-slate-50 p-3 rounded-xl border border-slate-100 space-y-3 flex flex-col justify-center">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-700 block mb-1">Max Marks</span>
+                    <span className="text-sm font-bold text-slate-900">600</span>
+                  </div>
+                  <div className="pt-2 border-t border-slate-200">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[11px] font-medium text-slate-600">Total Marks</span>
+                      <span className="text-xs font-bold text-slate-900">{formData.tenthTotalMarks || '—'} <span className="text-[10px] font-medium text-slate-500">/ 600</span></span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] font-medium text-slate-600">Percentage</span>
+                      <span className="text-xs font-bold text-blue-600">{formData.tenthPercentage ? `${formData.tenthPercentage}%` : '—'}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Higher Secondary / Diploma */}
+            <div className="space-y-3 pt-1">
+              <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1.5">
+                {formData.studentType === 'REGULAR' ? 'Higher Secondary & Engineering' : 'Diploma & Engineering'}
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                {formData.studentType === 'REGULAR' ? (
+                  <div>
+                    <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                      12th Percentage <span className="text-red-500">*</span>
                     </label>
                     <Input
                       type="number"
                       step="0.01"
-                      name="d2dCgpa"
-                      value={formData.d2dCgpa}
+                      name="twelfthPercentage"
+                      value={formData.twelfthPercentage}
                       onChange={handleChange}
-                      placeholder="e.g. 8.5"
-                      className="text-xs h-9.5"
+                      placeholder="e.g. 78.6"
+                      className="text-xs h-8"
                       required
                     />
                   </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                        Diploma College <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="text"
+                        name="diplomaCollege"
+                        value={formData.diplomaCollege}
+                        onChange={handleChange}
+                        placeholder="e.g. Government Polytechnic, Ahmedabad"
+                        className="text-xs h-8"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                        Diploma CGPA <span className="text-red-500">*</span>
+                      </label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        name="d2dCgpa"
+                        value={formData.d2dCgpa}
+                        onChange={handleChange}
+                        placeholder="e.g. 8.5"
+                        className="text-xs h-8"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
 
-              {/* 10th Percentage */}
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  10th Percentage <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  name="tenthPercentage"
-                  value={formData.tenthPercentage}
-                  onChange={handleChange}
-                  placeholder="e.g. 82.4"
-                  className="text-xs h-9.5"
-                  required
-                />
-              </div>
-
-              {/* 12th Percentage (Only for Regular Students) */}
-              {formData.studentType === 'REGULAR' && (
                 <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1">
-                    12th Percentage <span className="text-red-500">*</span>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Engineering CGPA (0-10) <span className="text-red-500">*</span>
                   </label>
                   <Input
                     type="number"
                     step="0.01"
-                    name="twelfthPercentage"
-                    value={formData.twelfthPercentage}
+                    name="currentCgpa"
+                    value={formData.currentCgpa}
                     onChange={handleChange}
-                    placeholder="e.g. 78.6"
-                    className="text-xs h-9.5"
+                    placeholder="e.g. 8.5"
+                    className="text-xs h-8"
                     required
                   />
                 </div>
-              )}
-
-              {/* Engineering CGPA */}
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Engineering CGPA (0-10) <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  name="currentCgpa"
-                  value={formData.currentCgpa}
-                  onChange={handleChange}
-                  placeholder="e.g. 8.5"
-                  className="text-xs h-9.5"
-                  required
-                />
-              </div>
-
-              {/* Backlogs */}
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Backlogs <span className="text-red-500">*</span>
-                </label>
-                <Input
-                  type="number"
-                  name="activeBacklogs"
-                  value={formData.activeBacklogs}
-                  onChange={handleChange}
-                  placeholder="0"
-                  className="text-xs h-9.5"
-                  required
-                />
+                
+                <div>
+                  <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                    Active Backlogs <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    name="activeBacklogs"
+                    value={formData.activeBacklogs}
+                    onChange={handleChange}
+                    placeholder="0"
+                    className="text-xs h-8"
+                    required
+                  />
+                </div>
               </div>
             </div>
 
@@ -752,14 +926,14 @@ export const StudentProfile: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={() => setActiveStep(1)}
-                className="text-xs h-9"
+                className="text-xs h-8 px-4"
               >
                 <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
                 Back
               </Button>
               <Button
                 onClick={handleNextStep2}
-                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 h-9"
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-5 h-8"
               >
                 Next
                 <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
@@ -769,85 +943,157 @@ export const StudentProfile: React.FC = () => {
         </Card>
       )}
 
-      {/* STEP 3: REVIEW & SUBMIT (Reference Panel 7) */}
+      {/* STEP 3: REVIEW & SUBMIT */}
       {activeStep === 3 && (
         <Card className="border-slate-200 shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <h3 className="font-bold text-slate-900 text-sm">Review Your Profile</h3>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Verify your information before submitting. Once submitted, your profile will be locked for verification.
-            </p>
+          <div className="bg-slate-50/50 px-5 py-3 border-b border-slate-100 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-blue-600" />
+            <div>
+              <h3 className="font-bold text-slate-900 text-sm">Review Your Profile</h3>
+            </div>
           </div>
 
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-4 space-y-3">
             {/* Section 1: Personal Information */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  &gt; Personal Information
+            <div className="relative p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="text-[10px] font-bold text-blue-800 uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded">
+                  Personal Information
                 </h4>
-                <p className="text-xs text-slate-600 mt-1">
-                  {formData.fullName} • {formData.phone} • {formatDate(formData.dob)}
-                </p>
+                <Button variant="ghost" size="sm" onClick={() => setActiveStep(1)} className="text-[11px] text-blue-600 hover:bg-blue-50 h-6 px-2 -mt-1 -mr-1">
+                  <Edit3 className="h-3 w-3 mr-1" /> Edit
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveStep(1)}
-                className="text-xs text-blue-600 border-blue-200 hover:bg-blue-50 h-7"
-              >
-                <Edit3 className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                <div>
+                  <span className="block text-slate-500 font-medium mb-0.5">Full Name</span>
+                  <span className="font-semibold text-slate-900">{formData.fullName}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-500 font-medium mb-0.5">Email</span>
+                  <span className="font-semibold text-slate-900 truncate block">{formData.email}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-500 font-medium mb-0.5">Phone</span>
+                  <span className="font-semibold text-slate-900">{formData.phone}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-500 font-medium mb-0.5">DOB</span>
+                  <span className="font-semibold text-slate-900">{formatDate(formData.dob)}</span>
+                </div>
+                <div>
+                  <span className="block text-slate-500 font-medium mb-0.5">Student Type</span>
+                  <span className="font-semibold text-slate-900">{formData.studentType === 'REGULAR' ? 'Regular' : 'D2D'}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="block text-slate-500 font-medium mb-0.5">Department</span>
+                  <span className="font-semibold text-slate-900">{formData.department}</span>
+                </div>
+              </div>
             </div>
 
-            {/* Section 2: Academic Details */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  &gt; Academic Details
+            {/* Section 2: 10th Standard */}
+            <div className="relative p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider bg-emerald-50 px-2 py-0.5 rounded">
+                  10th Standard
                 </h4>
-                <p className="text-xs text-slate-600 mt-1">
-                  10th: <strong>{formData.tenthPercentage}%</strong>
-                  {formData.studentType === 'REGULAR'
-                    ? ` • 12th: ${formData.twelfthPercentage}%`
-                    : ` • Diploma CGPA: ${formData.d2dCgpa} (${formData.diplomaCollege})`}
-                  {` • CGPA: `}
-                  <strong>{formData.currentCgpa}</strong>
-                  {` • Backlogs: `}
-                  <strong>{formData.activeBacklogs}</strong>
-                </p>
+                <Button variant="ghost" size="sm" onClick={() => setActiveStep(2)} className="text-[11px] text-emerald-600 hover:bg-emerald-50 h-6 px-2 -mt-1 -mr-1">
+                  <Edit3 className="h-3 w-3 mr-1" /> Edit
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveStep(2)}
-                className="text-xs text-blue-600 border-blue-200 hover:bg-blue-50 h-7"
-              >
-                <Edit3 className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="col-span-2 grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">Mathematics</span>
+                    <span className="font-semibold text-slate-900">{formData.tenthMathsMarks || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">Science</span>
+                    <span className="font-semibold text-slate-900">{formData.tenthScienceMarks || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">English</span>
+                    <span className="font-semibold text-slate-900">{formData.tenthEnglishMarks || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">Social Science</span>
+                    <span className="font-semibold text-slate-900">{formData.tenthSocialScienceMarks || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">Gujarati</span>
+                    <span className="font-semibold text-slate-900">{formData.tenthGujaratiMarks || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">Optional Language</span>
+                    <span className="font-semibold text-slate-900">{formData.tenthLanguageMarks || '—'}</span>
+                  </div>
+                </div>
+                <div className="col-span-1 bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex flex-col justify-center space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600 font-medium">Total Marks</span>
+                    <span className="font-bold text-slate-900 text-xs">{formData.tenthTotalMarks || '—'} <span className="text-slate-500 font-normal text-[10px]">/ 600</span></span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-600 font-medium">Percentage</span>
+                    <span className="font-bold text-emerald-700 text-xs">{formData.tenthPercentage ? `${formData.tenthPercentage}%` : '—'}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Section 3: Student Type */}
-            <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 flex items-center justify-between">
-              <div>
-                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  &gt; Student Type
-                </h4>
-                <p className="text-xs text-slate-600 mt-1">
-                  {formData.studentType === 'REGULAR' ? 'Regular Student' : 'D2D Student'} • {formData.department}
-                </p>
+            {/* Section 3: Higher Secondary & Engineering / Diploma */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="relative p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="text-[10px] font-bold text-purple-800 uppercase tracking-wider bg-purple-50 px-2 py-0.5 rounded">
+                    {formData.studentType === 'REGULAR' ? 'Higher Secondary' : 'Diploma'}
+                  </h4>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveStep(2)} className="text-[11px] text-purple-600 hover:bg-purple-50 h-6 px-2 -mt-1 -mr-1">
+                    <Edit3 className="h-3 w-3 mr-1" /> Edit
+                  </Button>
+                </div>
+                <div className="grid grid-cols-1 gap-2 text-xs">
+                  {formData.studentType === 'REGULAR' ? (
+                    <div>
+                      <span className="block text-slate-500 font-medium mb-0.5">12th Percentage</span>
+                      <span className="font-semibold text-slate-900">{formData.twelfthPercentage}%</span>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <span className="block text-slate-500 font-medium mb-0.5">Diploma CGPA</span>
+                        <span className="font-semibold text-slate-900">{formData.d2dCgpa}</span>
+                      </div>
+                      <div>
+                        <span className="block text-slate-500 font-medium mb-0.5">Diploma College</span>
+                        <span className="font-semibold text-slate-900">{formData.diplomaCollege}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setActiveStep(1)}
-                className="text-xs text-blue-600 border-blue-200 hover:bg-blue-50 h-7"
-              >
-                <Edit3 className="h-3 w-3 mr-1" />
-                Edit
-              </Button>
+
+              <div className="relative p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
+                <div className="flex justify-between items-start mb-2">
+                  <h4 className="text-[10px] font-bold text-orange-800 uppercase tracking-wider bg-orange-50 px-2 py-0.5 rounded">
+                    Engineering Details
+                  </h4>
+                  <Button variant="ghost" size="sm" onClick={() => setActiveStep(2)} className="text-[11px] text-orange-600 hover:bg-orange-50 h-6 px-2 -mt-1 -mr-1">
+                    <Edit3 className="h-3 w-3 mr-1" /> Edit
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">Current CGPA</span>
+                    <span className="font-bold text-blue-600">{formData.currentCgpa}</span>
+                  </div>
+                  <div>
+                    <span className="block text-slate-500 font-medium mb-0.5">Active Backlogs</span>
+                    <span className="font-bold text-slate-900">{formData.activeBacklogs}</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Bottom Actions */}
@@ -855,15 +1101,15 @@ export const StudentProfile: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={() => setActiveStep(2)}
-                className="text-xs h-9"
+                className="text-xs h-8 px-4"
               >
                 <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
                 Back
               </Button>
               <Button
-                onClick={handleSubmitProfile}
+                onClick={() => setIsConfirmDialogOpen(true)}
                 isLoading={isSubmitting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-6 h-9"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-6 h-8"
               >
                 <Send className="h-3.5 w-3.5 mr-1.5" />
                 Submit Profile
@@ -872,6 +1118,29 @@ export const StudentProfile: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Confirmation Dialog */}
+      <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirm Profile Submission</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to submit your profile? Once submitted, your profile will be securely locked and sent for TPO verification. You will not be able to edit it unless it is rejected.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => { setIsConfirmDialogOpen(false); handleSubmitProfile(); }} 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+            >
+              Confirm & Submit
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
