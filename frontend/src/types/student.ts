@@ -43,6 +43,7 @@ export interface Student {
     role: Role
     createdAt?: string
   }
+  profileCompleted?: boolean
 }
 
 export interface StudentProfileFormValues {

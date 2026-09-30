@@ -129,13 +129,17 @@ export const StudentDetails: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-3">
-                <h1 className="text-xl font-bold tracking-tight text-white">{student.fullName}</h1>
-                {isVerified ? (
-                  <Badge variant="success">Verified</Badge>
-                ) : isRejected ? (
-                  <Badge variant="destructive">Rejected</Badge>
+                <h1 className="text-xl font-bold tracking-tight text-white">{student.fullName || 'Profile Not Completed'}</h1>
+                {student.profileCompleted ? (
+                  isVerified ? (
+                    <Badge variant="success">Verified</Badge>
+                  ) : isRejected ? (
+                    <Badge variant="destructive">Rejected</Badge>
+                  ) : (
+                    <Badge variant="warning">Pending Verification</Badge>
+                  )
                 ) : (
-                  <Badge variant="warning">Pending Verification</Badge>
+                  <Badge variant="outline" className="border-slate-500 text-slate-300">Not Completed</Badge>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-1.5 text-xs text-slate-300">
@@ -145,16 +149,16 @@ export const StudentDetails: React.FC = () => {
                 </span>
                 <span className="flex items-center gap-1">
                   <Phone className="h-3.5 w-3.5 text-blue-400" />
-                  {student.phone}
+                  {student.phone || 'N/A'}
                 </span>
-                <span>Dept: {student.department}</span>
+                <span>Dept: {student.department || 'N/A'}</span>
               </div>
             </div>
           </div>
 
           {/* Verification Action Buttons */}
           <div className="flex items-center gap-2">
-            {!isVerified && (
+            {!isVerified && student.profileCompleted && (
               <Button
                 onClick={handleVerify}
                 isLoading={isVerifying}
@@ -164,7 +168,7 @@ export const StudentDetails: React.FC = () => {
                 Verify Student
               </Button>
             )}
-            {!isRejected && (
+            {!isRejected && student.profileCompleted && (
               <Button
                 variant="outline"
                 onClick={() => setShowRejectDialog(true)}
@@ -174,6 +178,11 @@ export const StudentDetails: React.FC = () => {
                 <XCircle className="h-4 w-4 mr-1.5" />
                 Reject Profile
               </Button>
+            )}
+            {!student.profileCompleted && (
+              <span className="text-xs text-slate-300 bg-slate-800 px-3 py-1.5 rounded border border-slate-700 shadow-sm">
+                Awaiting Profile Submission
+              </span>
             )}
           </div>
         </div>
@@ -199,21 +208,21 @@ export const StudentDetails: React.FC = () => {
               <dl className="space-y-2 text-xs">
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <dt className="text-slate-500">Student Type:</dt>
-                  <dd className="font-semibold text-blue-700">{student.studentType}</dd>
+                  <dd className="font-semibold text-blue-700">{student.studentType || 'N/A'}</dd>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <dt className="text-slate-500">Date of Birth:</dt>
-                  <dd className="font-semibold text-slate-800">{formatDate(student.dob)}</dd>
+                  <dd className="font-semibold text-slate-800">{student.dob ? formatDate(student.dob) : 'N/A'}</dd>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <dt className="text-slate-500">Profile Lock Status:</dt>
                   <dd className="font-semibold text-slate-800">
-                    {student.isProfileLocked ? 'Locked by Student' : 'Draft / Unlocked'}
+                    {!student.profileCompleted ? 'Not Completed' : student.isProfileLocked ? 'Locked by Student' : 'Draft / Unlocked'}
                   </dd>
                 </div>
                 <div className="flex justify-between py-1">
                   <dt className="text-slate-500">Registered On:</dt>
-                  <dd className="font-semibold text-slate-800">{formatDate(student.createdAt)}</dd>
+                  <dd className="font-semibold text-slate-800">{student.createdAt ? formatDate(student.createdAt) : 'N/A'}</dd>
                 </div>
               </dl>
             </div>
@@ -227,17 +236,17 @@ export const StudentDetails: React.FC = () => {
               <dl className="space-y-2 text-xs">
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <dt className="text-slate-500">Current CGPA:</dt>
-                  <dd className="font-bold text-blue-600 text-sm">{student.currentCgpa}</dd>
+                  <dd className="font-bold text-blue-600 text-sm">{student.currentCgpa ?? 'N/A'}</dd>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <dt className="text-slate-500">Active / Total Backlogs:</dt>
                   <dd className="font-semibold text-slate-800">
-                    {student.activeBacklogs} / {student.totalBacklogs}
+                    {student.activeBacklogs ?? 'N/A'} / {student.totalBacklogs ?? 'N/A'}
                   </dd>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-200/60">
                   <dt className="text-slate-500">10th Percentage:</dt>
-                  <dd className="font-semibold text-slate-800">{student.tenthPercentage}%</dd>
+                  <dd className="font-semibold text-slate-800">{student.tenthPercentage != null ? `${student.tenthPercentage}%` : 'N/A'}</dd>
                 </div>
                 {student.studentType === 'REGULAR' ? (
                   <div className="flex justify-between py-1">
@@ -272,19 +281,19 @@ export const StudentDetails: React.FC = () => {
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-center">
               <div className="p-3 bg-slate-50 rounded-lg">
                 <span className="text-[11px] text-slate-500 block">Maths</span>
-                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthMathsMarks}</span>
+                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthMathsMarks ?? '-'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <span className="text-[11px] text-slate-500 block">Science</span>
-                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthScienceMarks}</span>
+                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthScienceMarks ?? '-'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <span className="text-[11px] text-slate-500 block">English</span>
-                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthEnglishMarks}</span>
+                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthEnglishMarks ?? '-'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <span className="text-[11px] text-slate-500 block">Social Sci</span>
-                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthSocialScienceMarks}</span>
+                <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthSocialScienceMarks ?? '-'}</span>
               </div>
               <div className="p-3 bg-slate-50 rounded-lg">
                 <span className="text-[11px] text-slate-500 block">Language</span>

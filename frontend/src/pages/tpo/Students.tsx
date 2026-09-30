@@ -32,10 +32,11 @@ export const Students: React.FC = () => {
 
   const filteredStudents = students.filter((s) => {
     const term = searchTerm.toLowerCase();
-    const matchesSearch =
-      s.fullName?.toLowerCase().includes(term) ||
-      s.department?.toLowerCase().includes(term) ||
-      s.user?.email?.toLowerCase().includes(term);
+    const fullNameMatches = s.fullName ? s.fullName.toLowerCase().includes(term) : false;
+    const deptMatches = s.department ? s.department.toLowerCase().includes(term) : false;
+    const emailMatches = s.user?.email ? s.user.email.toLowerCase().includes(term) : false;
+    
+    const matchesSearch = fullNameMatches || deptMatches || emailMatches;
 
     const matchesStatus =
       statusFilter === 'ALL' || s.verificationStatus === statusFilter;

@@ -20,6 +20,7 @@ export function StudentTable({ students }: { students: Student[] }) {
             <TableHead>10th %</TableHead>
             <TableHead>12th / D2D</TableHead>
             <TableHead>Backlogs</TableHead>
+            <TableHead>Profile</TableHead>
             <TableHead>Verification</TableHead>
             <TableHead className="text-right">Action</TableHead>
           </TableRow>
@@ -29,19 +30,31 @@ export function StudentTable({ students }: { students: Student[] }) {
             <TableRow key={student.id}>
               <TableCell className="font-medium text-slate-400 text-xs">{index + 1}</TableCell>
               <TableCell>
-                <div className="font-semibold text-slate-900 text-sm">{student.fullName}</div>
+                <div className="font-semibold text-slate-900 text-sm">{student.fullName || 'Not Provided'}</div>
                 <div className="text-xs text-slate-400">{student.user?.email || student.phone}</div>
               </TableCell>
-              <TableCell className="text-xs font-medium text-slate-700">{student.department}</TableCell>
-              <TableCell>
-                <Badge variant="secondary" className="text-[10px]">
-                  {student.studentType}
-                </Badge>
-              </TableCell>
-              <TableCell className="font-bold text-blue-700 text-sm">{student.currentCgpa}</TableCell>
-              <TableCell className="text-xs font-medium text-slate-700">{student.tenthPercentage}%</TableCell>
               <TableCell className="text-xs font-medium text-slate-700">
-                {student.studentType === 'REGULAR'
+                {student.department || <span className="text-slate-400 italic">N/A</span>}
+              </TableCell>
+              <TableCell>
+                {student.studentType ? (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {student.studentType}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[10px] text-slate-400">N/A</Badge>
+                )}
+              </TableCell>
+              <TableCell className="font-bold text-blue-700 text-sm">
+                {student.currentCgpa != null ? student.currentCgpa : '-'}
+              </TableCell>
+              <TableCell className="text-xs font-medium text-slate-700">
+                {student.tenthPercentage != null ? `${student.tenthPercentage}%` : '-'}
+              </TableCell>
+              <TableCell className="text-xs font-medium text-slate-700">
+                {!student.profileCompleted
+                  ? '-'
+                  : student.studentType === 'REGULAR'
                   ? student.twelfthPercentage != null
                     ? `${student.twelfthPercentage}%`
                     : 'N/A'
@@ -52,11 +65,24 @@ export function StudentTable({ students }: { students: Student[] }) {
               <TableCell>
                 <span
                   className={`text-xs font-bold ${
-                    student.activeBacklogs > 0 ? 'text-rose-600' : 'text-emerald-600'
+                    student.activeBacklogs != null && student.activeBacklogs > 0
+                      ? 'text-rose-600'
+                      : student.activeBacklogs === 0 ? 'text-emerald-600' : 'text-slate-400'
                   }`}
                 >
-                  {student.activeBacklogs}
+                  {student.activeBacklogs != null ? student.activeBacklogs : '-'}
                 </span>
+              </TableCell>
+              <TableCell>
+                {student.profileCompleted ? (
+                  student.isProfileLocked ? (
+                    <Badge variant="outline" className="text-[10px] border-emerald-200 text-emerald-700 bg-emerald-50">Locked</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-700 bg-blue-50">Submitted</Badge>
+                  )
+                ) : (
+                  <Badge variant="outline" className="text-[10px] border-slate-200 text-slate-600 bg-slate-50">Not Completed</Badge>
+                )}
               </TableCell>
               <TableCell>
                 <span
