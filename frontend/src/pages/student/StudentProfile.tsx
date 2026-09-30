@@ -26,6 +26,7 @@ import {
   ArrowLeft,
   Send,
   XCircle,
+  Camera,
 } from 'lucide-react';
 import { DEPARTMENTS } from '@/constants';
 import type { StudentType } from '@/types/student';
@@ -61,6 +62,7 @@ export const StudentProfile: React.FC = () => {
     d2dCgpa: '',
     diplomaBranch: '',
     diplomaCollege: '',
+    profilePhoto: '',
   });
 
   useEffect(() => {
@@ -93,6 +95,7 @@ export const StudentProfile: React.FC = () => {
         d2dCgpa: profile.d2dCgpa ? String(profile.d2dCgpa) : '',
         diplomaBranch: profile.diplomaBranch || '',
         diplomaCollege: profile.diplomaCollege || '',
+        profilePhoto: profile.profilePhoto || '',
       });
     }
   }, [profile]);
@@ -148,6 +151,17 @@ export const StudentProfile: React.FC = () => {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, profilePhoto: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const validateStep1 = () => {
@@ -274,6 +288,7 @@ export const StudentProfile: React.FC = () => {
         currentCgpa: Number(formData.currentCgpa),
         activeBacklogs: Number(formData.activeBacklogs),
         totalBacklogs: Number(formData.totalBacklogs) || Number(formData.activeBacklogs),
+        profilePhoto: formData.profilePhoto || undefined,
       };
 
       if (formData.studentType === 'REGULAR') {
@@ -424,6 +439,15 @@ export const StudentProfile: React.FC = () => {
               <h3 className="font-bold text-slate-900 text-sm">Personal Details</h3>
             </div>
             <CardContent className="p-5">
+              <div className="flex flex-col items-center mb-4">
+                {profile.profilePhoto ? (
+                  <img src={profile.profilePhoto} alt="Profile" className="w-20 h-20 rounded-full object-cover border border-slate-200 shadow-sm" />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                    <User className="w-8 h-8 text-slate-400" />
+                  </div>
+                )}
+              </div>
               <dl className="space-y-3 text-xs">
                 <div className="flex justify-between py-1 border-b border-slate-50">
                   <dt className="text-slate-500 font-medium">Name:</dt>
@@ -640,6 +664,27 @@ export const StudentProfile: React.FC = () => {
               <h4 className="text-xs font-bold text-slate-800 border-b border-slate-100 pb-1.5">
                 Basic Details
               </h4>
+              <div className="flex justify-center mb-4">
+                <label htmlFor="profilePhoto" className="cursor-pointer group relative">
+                  <div className="w-24 h-24 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden bg-slate-50 group-hover:border-blue-500 transition-colors">
+                    {formData.profilePhoto ? (
+                      <img src={formData.profilePhoto} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <Camera className="w-8 h-8 text-slate-400 group-hover:text-blue-500" />
+                    )}
+                  </div>
+                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                  <input
+                    type="file"
+                    id="profilePhoto"
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                 <div>
                   <label className="text-[11px] font-bold text-slate-700 block mb-1">

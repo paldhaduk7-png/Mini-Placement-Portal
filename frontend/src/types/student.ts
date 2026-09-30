@@ -29,6 +29,7 @@ export interface Student {
   d2dCgpa?: number | null
   diplomaBranch?: string | null
   diplomaCollege?: string | null
+  profilePhoto?: string | null
 
   isProfileLocked: boolean
   verificationStatus: VerificationStatus
@@ -70,4 +71,5 @@ export interface StudentProfileFormValues {
   d2dCgpa?: number | null
   diplomaBranch?: string | null
   diplomaCollege?: string | null
+  profilePhoto?: string | null
 }
