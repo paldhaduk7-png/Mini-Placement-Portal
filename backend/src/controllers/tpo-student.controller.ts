@@ -26,8 +26,9 @@ export class TpoStudentController {
 
       const students = await TpoStudentService.getAllStudents(filters);
       res.status(200).json({
+        success: true,
         count: students.length,
-        students,
+        data: students,
       });
     } catch (error: any) {
       console.error('Error in TpoStudentController.getAllStudents:', error.message || error);

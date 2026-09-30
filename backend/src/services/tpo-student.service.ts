@@ -74,42 +74,121 @@ export class TpoStudentService {
     studentType?: StudentType;
     verificationStatus?: VerificationStatus;
   }) {
-    const where: any = {};
-    if (filters?.department) where.department = filters.department;
-    if (filters?.studentType) where.studentType = filters.studentType;
-    if (filters?.verificationStatus) where.verificationStatus = filters.verificationStatus;
+    const studentWhere: any = {};
+    if (filters?.department) studentWhere.department = filters.department;
+    if (filters?.studentType) studentWhere.studentType = filters.studentType;
+    if (filters?.verificationStatus) studentWhere.verificationStatus = filters.verificationStatus;
 
-    const students = await prisma.student.findMany({
-      where,
+    const users = await prisma.user.findMany({
+      where: {
+        role: 'STUDENT',
+        student: Object.keys(studentWhere).length > 0 ? studentWhere : undefined,
+      },
       orderBy: { createdAt: 'desc' },
       include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-          },
-        },
+        student: true,
       },
     });
 
-    return students;
+    return users.map((u) => {
+      if (u.student) {
+        return {
+          ...u.student,
+          profileCompleted: true,
+          user: {
+            id: u.id,
+            email: u.email,
+            role: u.role,
+            createdAt: u.createdAt,
+          },
+        };
+      } else {
+        return {
+          id: u.id, // Fallback ID for React key
+          userId: u.id,
+          profileCompleted: false,
+          fullName: null,
+          phone: null,
+          department: null,
+          studentType: null,
+          currentCgpa: null,
+          activeBacklogs: null,
+          tenthPercentage: null,
+          twelfthPercentage: null,
+          d2dCgpa: null,
+          verificationStatus: 'PENDING', // Default fallback
+          isProfileLocked: false,
+          user: {
+            id: u.id,
+            email: u.email,
+            role: u.role,
+            createdAt: u.createdAt,
+          },
+        };
+      }
+    });
   }
 
-  /**
-   * Get single student profile by Student ID or User ID.
-   */
   static async getStudentById(studentId: string) {
-    const student = await this.findStudentById(studentId);
+    // Search by User ID first (as we use User ID for row keys when profile is missing)
+    let user = await prisma.user.findUnique({
+      where: { id: studentId, role: 'STUDENT' },
+      include: { student: true },
+    });
 
-    if (!student) {
+    if (!user) {
+      // Fallback: check if it's a direct Student ID (for legacy links)
+      const studentDirect = await prisma.student.findUnique({
+        where: { id: studentId },
+        include: { user: true },
+      });
+      if (studentDirect && studentDirect.user) {
+        user = studentDirect.user as any;
+        user!.student = studentDirect as any;
+      }
+    }
+
+    if (!user) {
       const error: any = new Error(`Student with ID '${studentId}' was not found.`);
       error.statusCode = 404;
       throw error;
     }
 
-    return student;
+    if (user.student) {
+      return {
+        ...user.student,
+        profileCompleted: true,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+        },
+      };
+    } else {
+      return {
+        id: user.id,
+        userId: user.id,
+        profileCompleted: false,
+        fullName: null,
+        phone: null,
+        department: null,
+        studentType: null,
+        currentCgpa: null,
+        activeBacklogs: null,
+        tenthPercentage: null,
+        twelfthPercentage: null,
+        d2dCgpa: null,
+        verificationStatus: 'PENDING',
+        isProfileLocked: false,
+        user: {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          createdAt: user.createdAt,
+        },
+      };
+    }
   }
 
   /**
