@@ -258,11 +258,12 @@ export class RecruitmentDriveService {
     companyId?: string;
     status?: string;
     search?: string;
+    studentDepartment?: string;
   }) {
-    const where: any = {};
+    const where: any = { AND: [] };
 
     if (filters?.companyId?.trim()) {
-      where.companyId = filters.companyId.trim();
+      where.AND.push({ companyId: filters.companyId.trim() });
     }
 
     if (filters?.status?.trim()) {
@@ -274,15 +275,30 @@ export class RecruitmentDriveService {
           { statusCode: 400 }
         );
       }
-      where.status = uppercaseStatus;
+      where.AND.push({ status: uppercaseStatus });
     }
 
     if (filters?.search?.trim()) {
       const term = filters.search.trim();
-      where.OR = [
-        { role: { contains: term, mode: 'insensitive' } },
-        { company: { name: { contains: term, mode: 'insensitive' } } },
-      ];
+      where.AND.push({
+        OR: [
+          { role: { contains: term, mode: 'insensitive' } },
+          { company: { name: { contains: term, mode: 'insensitive' } } },
+        ]
+      });
+    }
+
+    if (filters?.studentDepartment) {
+      where.AND.push({
+        OR: [
+          { allowedDepartments: { isEmpty: true } },
+          { allowedDepartments: { has: filters.studentDepartment } }
+        ]
+      });
+    }
+
+    if (where.AND.length === 0) {
+      delete where.AND;
     }
 
     const drives = await prisma.recruitmentDrive.findMany({

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { RecruitmentDriveService } from '../services/recruitment-drive.service';
+import prisma from '../lib/prisma';
 
 export class RecruitmentDriveController {
   /**
@@ -79,10 +80,23 @@ export class RecruitmentDriveController {
     try {
       const { companyId, status, search } = req.query;
 
+      let studentDepartment: string | undefined = undefined;
+
+      if (req.user?.role === 'STUDENT' && req.user?.userId) {
+        const student = await prisma.student.findUnique({
+          where: { userId: req.user.userId },
+          select: { department: true }
+        });
+        if (student) {
+          studentDepartment = student.department;
+        }
+      }
+
       const drives = await RecruitmentDriveService.getAllDrives({
         companyId: typeof companyId === 'string' ? companyId : undefined,
         status: typeof status === 'string' ? status : undefined,
         search: typeof search === 'string' ? search : undefined,
+        studentDepartment,
       });
 
       res.status(200).json({
