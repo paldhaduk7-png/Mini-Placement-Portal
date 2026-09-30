@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import {
   GraduationCap,
   LayoutDashboard,
@@ -13,8 +14,10 @@ import { useAppDispatch } from '../../hooks/useAppDispatch'
 import { useAppSelector } from '../../hooks/useAppSelector'
 import { logout } from '../../features/auth/authSlice'
 import { cn } from '../../lib/utils'
+import { ConfirmDialog } from '../common/ConfirmDialog'
 
 export function Sidebar({ className, onClose }: { className?: string; onClose?: () => void }) {
+  const [isLogoutOpen, setIsLogoutOpen] = useState(false)
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
   const user = useAppSelector((state) => state.auth.user)
@@ -38,8 +41,13 @@ export function Sidebar({ className, onClose }: { className?: string; onClose?: 
   const links = isTPO ? tpoLinks : studentLinks
 
   const handleLogout = () => {
+    setIsLogoutOpen(true)
+  }
+
+  const confirmLogout = () => {
     dispatch(logout())
     navigate('/login')
+    setIsLogoutOpen(false)
   }
 
   return (
@@ -97,6 +105,15 @@ export function Sidebar({ className, onClose }: { className?: string; onClose?: 
           <span>Logout</span>
         </button>
       </div>
+
+      <ConfirmDialog
+        isOpen={isLogoutOpen}
+        title="Confirm Logout"
+        description="Are you sure you want to securely log out of the portal?"
+        confirmText="Logout"
+        onConfirm={confirmLogout}
+        onCancel={() => setIsLogoutOpen(false)}
+      />
     </aside>
   )
 }
