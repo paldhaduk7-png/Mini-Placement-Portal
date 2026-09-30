@@ -72,6 +72,27 @@ export class StudentService {
     if (data.tenthPercentage !== undefined && data.tenthPercentage !== null) {
       updateData.tenthPercentage = Number(data.tenthPercentage);
     }
+    if (data.tenthMathsMarks !== undefined && data.tenthMathsMarks !== null) {
+      updateData.tenthMathsMarks = Number(data.tenthMathsMarks);
+    }
+    if (data.tenthScienceMarks !== undefined && data.tenthScienceMarks !== null) {
+      updateData.tenthScienceMarks = Number(data.tenthScienceMarks);
+    }
+    if (data.tenthEnglishMarks !== undefined && data.tenthEnglishMarks !== null) {
+      updateData.tenthEnglishMarks = Number(data.tenthEnglishMarks);
+    }
+    if (data.tenthSocialScienceMarks !== undefined && data.tenthSocialScienceMarks !== null) {
+      updateData.tenthSocialScienceMarks = Number(data.tenthSocialScienceMarks);
+    }
+    if (data.tenthLanguageMarks !== undefined) {
+      updateData.tenthLanguageMarks = data.tenthLanguageMarks !== null ? Number(data.tenthLanguageMarks) : null;
+    }
+    if (data.tenthTotalMarks !== undefined && data.tenthTotalMarks !== null) {
+      updateData.tenthTotalMarks = Number(data.tenthTotalMarks);
+    }
+    if (data.tenthMaxMarks !== undefined && data.tenthMaxMarks !== null) {
+      updateData.tenthMaxMarks = Number(data.tenthMaxMarks);
+    }
     if (data.twelfthPercentage !== undefined) {
       updateData.twelfthPercentage = data.twelfthPercentage != null && data.twelfthPercentage !== '' ? Number(data.twelfthPercentage) : null;
     }
@@ -131,7 +152,21 @@ export class StudentService {
     if (!student.fullName?.trim()) missing.push('fullName');
     if (!student.phone?.trim()) missing.push('phone');
     if (!student.dob) missing.push('dob');
-    if (student.currentCgpa == null || student.currentCgpa <= 0) missing.push('currentCgpa');
+    if (student.currentCgpa == null || student.currentCgpa < 0) missing.push('currentCgpa');
+
+    // 10th marks validation
+    if (student.tenthMathsMarks == null || student.tenthMathsMarks < 0) missing.push('tenthMathsMarks');
+    if (student.tenthScienceMarks == null || student.tenthScienceMarks < 0) missing.push('tenthScienceMarks');
+    if (student.tenthEnglishMarks == null || student.tenthEnglishMarks < 0) missing.push('tenthEnglishMarks');
+    if (student.tenthSocialScienceMarks == null || student.tenthSocialScienceMarks < 0) missing.push('tenthSocialScienceMarks');
+    if (student.tenthTotalMarks == null || student.tenthTotalMarks <= 0) missing.push('tenthTotalMarks');
+    
+    if (student.tenthTotalMarks != null && student.tenthMaxMarks != null) {
+      if (student.tenthTotalMarks > student.tenthMaxMarks) {
+        missing.push('tenthTotalMarks cannot exceed tenthMaxMarks');
+      }
+    }
+
     if (student.tenthPercentage == null || student.tenthPercentage <= 0) missing.push('tenthPercentage');
 
     if (student.studentType === StudentType.REGULAR) {

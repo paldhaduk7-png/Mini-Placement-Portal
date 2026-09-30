@@ -180,6 +180,7 @@ export class AuthController {
       res.status(500).json({
         error: 'Internal Server Error',
         message: 'An unexpected error occurred during login.',
+        details: error.message || String(error)
       });
     }
   }
