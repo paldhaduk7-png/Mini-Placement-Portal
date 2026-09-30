@@ -3,6 +3,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.routes';
 import studentRoutes from './routes/student.routes';
 import tpoStudentRoutes from './routes/tpo-student.routes';
+import tpoUserRoutes from './routes/tpo-user.routes';
 import companyRoutes from './routes/company.routes';
 import recruitmentDriveRoutes from './routes/recruitment-drive.routes';
 import { tpoEligibilityRouter, studentEligibilityRouter } from './routes/eligibility.routes';
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/tpo/students', tpoStudentRoutes);
 app.use('/api/tpo/companies', companyRoutes);
+app.use('/api/tpo', tpoUserRoutes);
 
 // Eligibility Routes
 app.use('/api/tpo/drives', tpoEligibilityRouter);
