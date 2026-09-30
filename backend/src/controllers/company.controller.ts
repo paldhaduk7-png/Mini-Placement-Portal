@@ -112,8 +112,9 @@ export class CompanyController {
     try {
       const companies = await CompanyService.getAllCompanies();
       res.status(200).json({
+        success: true,
         count: companies.length,
-        companies,
+        data: companies,
       });
     } catch (error: any) {
       console.error('Error fetching companies:', error.message || error);
