@@ -30,8 +30,19 @@ export function StudentTable({ students }: { students: Student[] }) {
             <TableRow key={student.id}>
               <TableCell className="font-medium text-slate-400 text-xs">{index + 1}</TableCell>
               <TableCell>
-                <div className="font-semibold text-slate-900 text-sm">{student.fullName || 'Not Provided'}</div>
-                <div className="text-xs text-slate-400">{student.user?.email || student.phone}</div>
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold overflow-hidden shrink-0">
+                    {student.profilePhoto ? (
+                      <img src={student.profilePhoto} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      student.fullName?.charAt(0) || 'S'
+                    )}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900 text-sm">{student.fullName || 'Not Provided'}</div>
+                    <div className="text-xs text-slate-400">{student.user?.email || student.phone}</div>
+                  </div>
+                </div>
               </TableCell>
               <TableCell className="text-xs font-medium text-slate-700">
                 {student.department || <span className="text-slate-400 italic">N/A</span>}

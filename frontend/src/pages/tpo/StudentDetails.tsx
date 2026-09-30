@@ -124,8 +124,12 @@ export const StudentDetails: React.FC = () => {
       <Card className="border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 bg-slate-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="h-16 w-16 rounded-full bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-200 font-bold text-xl">
-              {student.fullName?.charAt(0) || 'S'}
+            <div className="h-16 w-16 rounded-full bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-200 font-bold text-xl overflow-hidden shrink-0">
+              {student.profilePhoto ? (
+                <img src={student.profilePhoto} alt="Profile" className="h-full w-full object-cover" />
+              ) : (
+                student.fullName?.charAt(0) || 'S'
+              )}
             </div>
             <div>
               <div className="flex items-center gap-3">
