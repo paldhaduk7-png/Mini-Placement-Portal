@@ -232,9 +232,9 @@ export const Login: React.FC = () => {
                 />
                 Remember me
               </label>
-              <span className="text-blue-600 hover:underline cursor-pointer">
+              <Link to="/forgot-password" className="text-blue-600 hover:underline cursor-pointer">
                 Forgot password?
-              </span>
+              </Link>
             </div>
 
             <Button

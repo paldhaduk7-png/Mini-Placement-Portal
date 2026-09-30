@@ -26,6 +26,21 @@ export const authService = {
       user: normalizedUser,
     }
   },
+
+  async forgotPassword(email: string): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/auth/forgot-password', { email })
+    return response.data
+  },
+
+  async verifyOtp(email: string, otp: string): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/auth/verify-otp', { email, otp })
+    return response.data
+  },
+
+  async resetPassword(email: string, otp: string, newPassword: string): Promise<{ message: string }> {
+    const response = await api.post<{ message: string }>('/auth/reset-password', { email, otp, newPassword })
+    return response.data
+  },
 }
 
 export default authService

@@ -7,6 +7,9 @@ import { AppLayout } from '@/components/layout/AppLayout';
 // Auth Pages
 import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
+import { ForgotPassword } from '@/pages/auth/ForgotPassword';
+import { VerifyOtp } from '@/pages/auth/VerifyOtp';
+import { ResetPassword } from '@/pages/auth/ResetPassword';
 
 // Student Pages
 import { StudentDashboard } from '@/pages/student/StudentDashboard';
@@ -73,6 +76,18 @@ export const router = createBrowserRouter([
   {
     path: '/register',
     element: <Register />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPassword />,
+  },
+  {
+    path: '/verify-otp',
+    element: <VerifyOtp />,
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPassword />,
   },
   {
     path: '/unauthorized',
