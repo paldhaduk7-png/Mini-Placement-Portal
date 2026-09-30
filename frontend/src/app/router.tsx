@@ -24,6 +24,7 @@ import { CreateCompany as TPOCreateCompany } from '@/pages/tpo/CreateCompany';
 import { EditCompany as TPOEditCompany } from '@/pages/tpo/EditCompany';
 import { Drives as TPODrives } from '@/pages/tpo/Drives';
 import { CreateDrive as TPOCreateDrive } from '@/pages/tpo/CreateDrive';
+import { EditDrive as TPOEditDrive } from '@/pages/tpo/EditDrive';
 import { DriveDetails as TPODriveDetails } from '@/pages/tpo/DriveDetails';
 import { Applications as TPOApplications } from '@/pages/tpo/Applications';
 
@@ -160,6 +161,10 @@ export const router = createBrowserRouter([
       {
         path: 'drives/create',
         element: <TPOCreateDrive />,
+      },
+      {
+        path: 'drives/:id/edit',
+        element: <TPOEditDrive />,
       },
       {
         path: 'drives/:id',

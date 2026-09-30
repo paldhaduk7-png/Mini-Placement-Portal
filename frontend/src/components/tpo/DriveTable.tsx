@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate, formatCurrencyLPA } from '@/lib/utils';
 import type { RecruitmentDrive } from '@/types/drive';
-import { Users, ExternalLink, Calendar, MapPin, Building2 } from 'lucide-react';
+import { Users, ExternalLink, Calendar, MapPin, Building2, Pencil } from 'lucide-react';
 
 interface DriveTableProps {
   drives: RecruitmentDrive[];
@@ -90,6 +90,11 @@ export const DriveTable: React.FC<DriveTableProps> = ({ drives }) => {
                       <Link to={`/tpo/drives/${drive.id}`}>
                         <Users className="h-3.5 w-3.5 mr-1 text-blue-600" />
                         Eligible Students
+                      </Link>
+                    </Button>
+                    <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600 bg-transparent hover:bg-blue-50">
+                      <Link to={`/tpo/drives/${drive.id}/edit`} title="Edit Drive">
+                        <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>
                     <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0 text-slate-500 hover:text-slate-800">
