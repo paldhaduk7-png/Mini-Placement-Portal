@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { Briefcase, ArrowLeft } from 'lucide-react';
 import type { Company } from '@/types/company';
 import type { StudentType } from '@/types/student';
+import { DEPARTMENTS } from '@/constants';
 
 export const CreateDrive: React.FC = () => {
   const navigate = useNavigate();
@@ -31,10 +32,17 @@ export const CreateDrive: React.FC = () => {
   const [minD2dCgpa, setMinD2dCgpa] = useState<number | ''>(7.0);
   const [maxActiveBacklogs, setMaxActiveBacklogs] = useState<number | ''>(0);
   const [isD2dAllowed, setIsD2dAllowed] = useState<'Yes' | 'No'>('Yes');
+  const [allowedDepartments, setAllowedDepartments] = useState<string[]>([]);
   
   const [driveDate, setDriveDate] = useState(
     new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
   );
+  
+  const handleDeptToggle = (dept: string) => {
+    setAllowedDepartments((prev) =>
+      prev.includes(dept) ? prev.filter((d) => d !== dept) : [...prev, dept]
+    );
+  };
   const [deadline, setDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
   );
@@ -98,7 +106,7 @@ export const CreateDrive: React.FC = () => {
         minD2dCgpa: isD2dAllowed === 'Yes' && minD2dCgpa !== '' ? Number(minD2dCgpa) : null,
         maxActiveBacklogs: Number(maxActiveBacklogs) || 0,
         allowedStudentTypes,
-        allowedDepartments: [],
+        allowedDepartments,
         requiresVerification: true,
       };
 
@@ -250,17 +258,19 @@ export const CreateDrive: React.FC = () => {
                     onChange={(e) => setMinCgpa(e.target.value === '' ? '' : Number(e.target.value))}
                   />
                 </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-slate-600 mb-1">Min CPI / D2D CGPA</label>
-                  <Input
-                    type="number"
-                    step="0.1"
-                    placeholder=">= 7.0"
-                    value={minD2dCgpa}
-                    onChange={(e) => setMinD2dCgpa(e.target.value === '' ? '' : Number(e.target.value))}
-                  />
-                </div>
+                
+                {isD2dAllowed === 'Yes' && (
+                  <div>
+                    <label className="block text-xs font-medium text-slate-600 mb-1">Min CPI / D2D CGPA</label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      placeholder=">= 7.0"
+                      value={minD2dCgpa}
+                      onChange={(e) => setMinD2dCgpa(e.target.value === '' ? '' : Number(e.target.value))}
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
@@ -284,6 +294,23 @@ export const CreateDrive: React.FC = () => {
                     <option value="Yes">Yes</option>
                     <option value="No">No</option>
                   </select>
+                </div>
+              </div>
+              
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-slate-600 mb-2">Allowed Branches (Leave empty to allow all)</label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {DEPARTMENTS.map((dept) => (
+                    <label key={dept} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allowedDepartments.includes(dept)}
+                        onChange={() => handleDeptToggle(dept)}
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      {dept}
+                    </label>
+                  ))}
                 </div>
               </div>
             </div>

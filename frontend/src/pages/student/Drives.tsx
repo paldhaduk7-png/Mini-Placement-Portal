@@ -2,23 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { fetchMyApplications } from '@/features/application/applicationSlice';
+import { fetchStudentProfile } from '@/features/student/studentSlice';
 import driveService from '@/services/drive.service';
 import { DriveCard } from '@/components/student/DriveCard';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
-import { Briefcase, Search } from 'lucide-react';
+import { Briefcase, Search, Clock } from 'lucide-react';
 import type { RecruitmentDrive } from '@/types/drive';
 
 export const Drives: React.FC = () => {
   const dispatch = useAppDispatch();
   const { applications, isLoading: isAppsLoading } = useAppSelector((state) => state.application);
+  const { profile, isLoading: isProfileLoading } = useAppSelector((state) => state.student);
   const [drives, setDrives] = useState<RecruitmentDrive[]>([]);
   const [isLoadingDrives, setIsLoadingDrives] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     dispatch(fetchMyApplications());
+    dispatch(fetchStudentProfile());
 
     // Attempt to fetch drives
     const loadDrives = async () => {
@@ -58,7 +61,7 @@ export const Drives: React.FC = () => {
     return !searchTerm || companyMatch || roleMatch || locationMatch;
   });
 
-  const isLoading = isLoadingDrives && isAppsLoading && displayDrives.length === 0;
+  const isLoading = (isLoadingDrives && isAppsLoading && displayDrives.length === 0) || isProfileLoading;
 
   if (isLoading) {
     return (
@@ -67,6 +70,8 @@ export const Drives: React.FC = () => {
       </div>
     );
   }
+
+  const isVerified = profile?.verificationStatus === 'VERIFIED';
 
   return (
     <div className="space-y-6">
@@ -90,12 +95,19 @@ export const Drives: React.FC = () => {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9 text-xs"
+            disabled={!isVerified}
           />
         </div>
       </div>
 
       {/* Drives Grid */}
-      {displayDrives.length === 0 ? (
+      {!isVerified ? (
+        <EmptyState
+          icon={Clock}
+          title="Verification Pending"
+          description="Waiting for verification from TPO side. You will be able to view and apply to recruitment drives once your profile is verified."
+        />
+      ) : displayDrives.length === 0 ? (
         <EmptyState
           icon={Briefcase}
           title="No Recruitment Drives Available"

@@ -106,6 +106,8 @@ export const StudentDashboard: React.FC = () => {
   // Drives to display in Latest Recruitment Drives table
   const displayDrives = availableDrives.slice(0, 5);
 
+  const isVerified = profile?.verificationStatus === 'VERIFIED';
+
   return (
     <div className="space-y-6">
       {/* Welcome Header */}
@@ -175,7 +177,7 @@ export const StudentDashboard: React.FC = () => {
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Available Drives</p>
               <h3 className="text-3xl font-extrabold text-slate-900 mt-1">
-                {availableDrives.length}
+                {isVerified ? availableDrives.length : 0}
               </h3>
             </div>
             <div className="h-12 w-12 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center border border-rose-100">
@@ -216,7 +218,15 @@ export const StudentDashboard: React.FC = () => {
         </div>
 
         <CardContent className="p-0">
-          {displayDrives.length === 0 ? (
+          {!isVerified ? (
+            <div className="p-8 text-center">
+              <Clock className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-700">Verification Pending</p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+                Waiting for verification from TPO side. You will be able to view and apply to recruitment drives once your profile is verified.
+              </p>
+            </div>
+          ) : displayDrives.length === 0 ? (
             <div className="p-8 text-center">
               <Calendar className="h-10 w-10 text-slate-300 mx-auto mb-2" />
               <p className="text-sm font-semibold text-slate-700">No recruitment drives available</p>
