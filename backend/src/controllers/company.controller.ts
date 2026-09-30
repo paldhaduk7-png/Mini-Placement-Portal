@@ -40,7 +40,6 @@ export class CompanyController {
   static async createCompany(req: Request, res: Response): Promise<void> {
     try {
       const name = req.body.name;
-      const website = req.body.website;
       const createdById = req.user?.userId;
 
       if (!createdById) {
@@ -71,7 +70,6 @@ export class CompanyController {
       const company = await CompanyService.createCompany({
         name,
         imageInput,
-        website,
         createdById,
       });
 
@@ -167,7 +165,7 @@ export class CompanyController {
   static async updateCompany(req: Request, res: Response): Promise<void> {
     try {
       const { id } = req.params;
-      const { name, website } = req.body;
+      const { name } = req.body;
       const imageInput = CompanyController.extractImageInput(req);
 
       if (!id?.trim()) {
@@ -178,17 +176,16 @@ export class CompanyController {
         return;
       }
 
-      if (name === undefined && website === undefined && !imageInput) {
+      if (name === undefined && !imageInput) {
         res.status(400).json({
           error: 'Validation Error',
-          message: 'Provide at least one field (name, website, or image) to update.',
+          message: 'Provide at least one field (name, or image) to update.',
         });
         return;
       }
 
       const updated = await CompanyService.updateCompany(id, {
         name,
-        website,
         imageInput: imageInput || undefined,
       });
 

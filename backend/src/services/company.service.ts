@@ -4,14 +4,12 @@ import { uploadToCloudinary, deleteFromCloudinary } from '../config/cloudinary';
 export interface CreateCompanyInput {
   name: string;
   imageInput: Buffer | string;
-  website?: string | null;
   createdById: string;
 }
 
 export interface UpdateCompanyInput {
   name?: string;
   imageInput?: Buffer | string;
-  website?: string | null;
 }
 
 export class CompanyService {
@@ -64,7 +62,6 @@ export class CompanyService {
       data: {
         name: trimmedName,
         imageUrl: uploadResult.secureUrl,
-        website: input.website?.trim() || null,
         createdById: validCreatedById,
       },
       include: {
@@ -167,10 +164,6 @@ export class CompanyService {
       }
 
       dataToUpdate.name = trimmedName;
-    }
-
-    if (input.website !== undefined) {
-      dataToUpdate.website = input.website?.trim() || null;
     }
 
     // 2. Image replacement
