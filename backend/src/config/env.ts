@@ -11,6 +11,11 @@ export const config = {
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '',
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '',
   nodeEnv: process.env.NODE_ENV || 'development',
+  mailUsername: process.env.MAIL_USERNAME || '',
+  mailPassword: (process.env.MAIL_PASSWORD || '').replace(/\s/g, ''),
+  mailFrom: process.env.MAIL_FROM || '',
+  mailServer: process.env.MAIL_SERVER || 'smtp.gmail.com',
+  mailPort: parseInt(process.env.MAIL_PORT || '465', 10),
 };
 
 if (!config.jwtSecret && config.nodeEnv !== 'test') {
