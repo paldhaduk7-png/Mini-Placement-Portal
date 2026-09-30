@@ -7,6 +7,8 @@ export interface User {
   email: string
   role: Role
   fullName?: string
+  name?: string
+  phone?: string
   createdAt?: string
 }
 

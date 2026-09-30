@@ -27,6 +27,8 @@ import { CreateDrive as TPOCreateDrive } from '@/pages/tpo/CreateDrive';
 import { EditDrive as TPOEditDrive } from '@/pages/tpo/EditDrive';
 import { DriveDetails as TPODriveDetails } from '@/pages/tpo/DriveDetails';
 import { Applications as TPOApplications } from '@/pages/tpo/Applications';
+import { TPOUsers } from '@/pages/tpo/TPOUsers';
+import { TPOProfile } from '@/pages/tpo/TPOProfile';
 
 // Error Pages
 import { NotFound } from '@/pages/errors/NotFound';
@@ -173,6 +175,14 @@ export const router = createBrowserRouter([
       {
         path: 'applications',
         element: <TPOApplications />,
+      },
+      {
+        path: 'users',
+        element: <TPOUsers />,
+      },
+      {
+        path: 'profile',
+        element: <TPOProfile />,
       },
     ],
   },
