@@ -3,6 +3,11 @@ import jwt from 'jsonwebtoken';
 import { Role, StudentType, VerificationStatus } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { config } from '../config/env';
+import { sendOtpEmail } from '../lib/mailer';
+
+// In-memory store for OTPs. Key is email.
+// In production, this should ideally be in Redis or database.
+const otpStore = new Map<string, { otp: string; expiresAt: number; verified: boolean }>();
 
 export interface RegisterStudentInput {
   fullName: string;
@@ -180,5 +185,109 @@ export class AuthService {
     return jwt.sign({ userId, role }, config.jwtSecret, {
       expiresIn: '7d',
     });
+  }
+
+  static async forgotPassword(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user) {
+      // Don't leak whether the email exists. Just return success.
+      return { message: 'If the email exists, an OTP will be sent.' };
+    }
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    otpStore.set(normalizedEmail, { otp, expiresAt, verified: false });
+
+    // Send email
+    try {
+      await sendOtpEmail(normalizedEmail, otp);
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
+      
+      // Fallback for development so you can test the frontend flow even if SMTP credentials fail
+      if (config.nodeEnv === 'development') {
+        const fallbackOtp = '123456';
+        otpStore.set(normalizedEmail, { otp: fallbackOtp, expiresAt, verified: false });
+        console.log(`\n=========================================`);
+        console.log(`[DEV MODE] SMTP failed.`);
+        console.log(`[DEV MODE] OTP for ${normalizedEmail} has been set to: ${fallbackOtp}`);
+        console.log(`=========================================\n`);
+        return { message: `SMTP failed. Dev Mode active: use OTP ${fallbackOtp} to test.` };
+      }
+
+      const e: any = new Error('Failed to send email. Please try again later.');
+      e.statusCode = 500;
+      throw e;
+    }
+
+    return { message: 'OTP sent successfully to your email.' };
+  }
+
+  static async verifyOtp(email: string, otp: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const record = otpStore.get(normalizedEmail);
+
+    if (!record) {
+      const error: any = new Error('No OTP found for this email or it has expired.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(normalizedEmail);
+      const error: any = new Error('OTP has expired. Please request a new one.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (record.otp !== otp) {
+      const error: any = new Error('Invalid OTP.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Mark as verified
+    record.verified = true;
+    otpStore.set(normalizedEmail, record);
+
+    return { message: 'OTP verified successfully.' };
+  }
+
+  static async resetPassword(email: string, otp: string, newPassword: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const record = otpStore.get(normalizedEmail);
+
+    if (!record || !record.verified || record.otp !== otp) {
+      const error: any = new Error('Invalid or unverified OTP. Please verify again.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(normalizedEmail);
+      const error: any = new Error('Session expired. Please start over.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    await prisma.user.update({
+      where: { email: normalizedEmail },
+      data: { password: hashedPassword },
+    });
+
+    // Clear OTP from store
+    otpStore.delete(normalizedEmail);
+
+    return { message: 'Password reset successfully.' };
   }
 }

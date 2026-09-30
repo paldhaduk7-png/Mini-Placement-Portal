@@ -9,6 +9,9 @@ const router = Router();
 // Public Authentication Endpoints
 router.post('/register', AuthController.register);
 router.post('/login', AuthController.login);
+router.post('/forgot-password', AuthController.forgotPassword);
+router.post('/verify-otp', AuthController.verifyOtp);
+router.post('/reset-password', AuthController.resetPassword);
 
 // Protected Verification Endpoint (for verifying JWT and current user)
 router.get('/me', authenticateToken, AuthController.me);

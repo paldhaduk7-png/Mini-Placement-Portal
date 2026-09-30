@@ -206,4 +206,68 @@ export class AuthController {
       user: req.user,
     });
   }
+
+  static async forgotPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { email } = req.body;
+      if (!email?.trim()) {
+        res.status(400).json({ error: 'Validation Error', message: 'Email is required.' });
+        return;
+      }
+
+      const response = await AuthService.forgotPassword(email);
+      res.status(200).json(response);
+    } catch (error: any) {
+      if (error.statusCode) {
+        res.status(error.statusCode).json({ error: 'Bad Request', message: error.message });
+        return;
+      }
+      console.error('Forgot Password Error:', error.message || error);
+      res.status(500).json({ error: 'Internal Server Error', message: 'An unexpected error occurred.' });
+    }
+  }
+
+  static async verifyOtp(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, otp } = req.body;
+      if (!email?.trim() || !otp?.trim()) {
+        res.status(400).json({ error: 'Validation Error', message: 'Email and OTP are required.' });
+        return;
+      }
+
+      const response = await AuthService.verifyOtp(email, otp);
+      res.status(200).json(response);
+    } catch (error: any) {
+      if (error.statusCode) {
+        res.status(error.statusCode).json({ error: 'Bad Request', message: error.message });
+        return;
+      }
+      console.error('Verify OTP Error:', error.message || error);
+      res.status(500).json({ error: 'Internal Server Error', message: 'An unexpected error occurred.' });
+    }
+  }
+
+  static async resetPassword(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, otp, newPassword } = req.body;
+      if (!email?.trim() || !otp?.trim() || !newPassword) {
+        res.status(400).json({ error: 'Validation Error', message: 'Email, OTP, and new password are required.' });
+        return;
+      }
+      if (newPassword.length < 6) {
+        res.status(400).json({ error: 'Validation Error', message: 'Password must be at least 6 characters long.' });
+        return;
+      }
+
+      const response = await AuthService.resetPassword(email, otp, newPassword);
+      res.status(200).json(response);
+    } catch (error: any) {
+      if (error.statusCode) {
+        res.status(error.statusCode).json({ error: 'Bad Request', message: error.message });
+        return;
+      }
+      console.error('Reset Password Error:', error.message || error);
+      res.status(500).json({ error: 'Internal Server Error', message: 'An unexpected error occurred.' });
+    }
+  }
 }
