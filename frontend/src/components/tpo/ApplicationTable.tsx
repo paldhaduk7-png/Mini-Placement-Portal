@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import type { Application, ApplicationStatus, Interview } from '@/types/application';
-import { Eye, Building2, FileText, Calendar } from 'lucide-react';
+import { Eye, Building2, FileText, Calendar, CalendarPlus, CalendarCheck } from 'lucide-react';
 
 interface ApplicationTableProps {
   applications: Application[];
@@ -156,33 +156,32 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                   <div className="inline-flex items-center justify-end gap-2">
                     {app.status === 'SHORTLISTED' && onScheduleInterview && (
                       app.interviews && app.interviews.length > 0 ? (
-                        <Button
+                        <button
                           type="button"
-                          size="sm"
-                          variant="outline"
                           onClick={() => onScheduleInterview(app, app.interviews![0])}
-                          className="h-8 px-2.5 text-xs font-semibold text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 flex items-center gap-1.5 shadow-xs whitespace-nowrap"
+                          title="Click to view or edit interview details"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold transition-colors cursor-pointer"
                         >
-                          <Calendar className="h-3.5 w-3.5 text-emerald-600" />
+                          <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
                           Interview Scheduled
-                        </Button>
+                        </button>
                       ) : (
-                        <Button
+                        <button
                           type="button"
-                          size="sm"
                           onClick={() => onScheduleInterview(app, undefined)}
-                          className="h-8 px-2.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 shadow-xs whitespace-nowrap"
+                          title="Schedule interview for this candidate"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-semibold transition-colors cursor-pointer"
                         >
-                          <Calendar className="h-3.5 w-3.5" />
+                          <CalendarPlus className="h-3.5 w-3.5 text-blue-600" />
                           Schedule Interview
-                        </Button>
+                        </button>
                       )
                     )}
 
                     {student?.id ? (
-                      <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                      <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50">
                         <Link to={`/tpo/students/${student.id}`}>
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Eye className="h-3.5 w-3.5 mr-1" />
                           Profile
                         </Link>
                       </Button>
