@@ -37,6 +37,7 @@ export const StudentProfile: React.FC = () => {
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isEditingRejected, setIsEditingRejected] = useState(false);
+  const [isOtherCollege, setIsOtherCollege] = useState(false);
 
   // Form State for Steps 1 & 2
   const [formData, setFormData] = useState({
@@ -97,6 +98,22 @@ export const StudentProfile: React.FC = () => {
         diplomaCollege: profile.diplomaCollege || '',
         profilePhoto: profile.profilePhoto || '',
       });
+      if (profile.diplomaCollege && ![
+        "Government Polytechnic, Ahmedabad",
+        "L.J. Polytechnic, Ahmedabad",
+        "Government Polytechnic for Girls, Ahmedabad",
+        "R.C. Technical Institute, Ahmedabad",
+        "Silver Oak Polytechnic, Ahmedabad",
+        "Government Polytechnic, Gandhinagar",
+        "Government Polytechnic, Vadodara",
+        "Government Polytechnic, Rajkot",
+        "Government Polytechnic, Surat",
+        "Parul Polytechnic Institute, Vadodara"
+      ].includes(profile.diplomaCollege)) {
+        setIsOtherCollege(true);
+      } else {
+        setIsOtherCollege(false);
+      }
     }
   }, [profile]);
 
@@ -906,16 +923,51 @@ export const StudentProfile: React.FC = () => {
                       <label className="text-[11px] font-bold text-slate-700 block mb-1">
                         Diploma College <span className="text-red-500">*</span>
                       </label>
-                      <Input
-                        type="text"
+                      <select
                         name="diplomaCollege"
-                        value={formData.diplomaCollege}
-                        onChange={handleChange}
-                        placeholder="e.g. Government Polytechnic, Ahmedabad"
-                        className="text-xs h-8"
+                        value={isOtherCollege ? "Other" : formData.diplomaCollege}
+                        onChange={(e) => {
+                          if (e.target.value === "Other") {
+                            setIsOtherCollege(true);
+                            setFormData(prev => ({ ...prev, diplomaCollege: '' }));
+                          } else {
+                            setIsOtherCollege(false);
+                            handleChange(e as any);
+                          }
+                        }}
+                        className="w-full h-8 px-3 text-xs bg-white border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required
-                      />
+                      >
+                        <option value="" disabled>Select Diploma College</option>
+                        <option value="Government Polytechnic, Ahmedabad">Government Polytechnic, Ahmedabad</option>
+                        <option value="L.J. Polytechnic, Ahmedabad">L.J. Polytechnic, Ahmedabad</option>
+                        <option value="Government Polytechnic for Girls, Ahmedabad">Government Polytechnic for Girls, Ahmedabad</option>
+                        <option value="R.C. Technical Institute, Ahmedabad">R.C. Technical Institute, Ahmedabad</option>
+                        <option value="Silver Oak Polytechnic, Ahmedabad">Silver Oak Polytechnic, Ahmedabad</option>
+                        <option value="Government Polytechnic, Gandhinagar">Government Polytechnic, Gandhinagar</option>
+                        <option value="Government Polytechnic, Vadodara">Government Polytechnic, Vadodara</option>
+                        <option value="Government Polytechnic, Rajkot">Government Polytechnic, Rajkot</option>
+                        <option value="Government Polytechnic, Surat">Government Polytechnic, Surat</option>
+                        <option value="Parul Polytechnic Institute, Vadodara">Parul Polytechnic Institute, Vadodara</option>
+                        <option value="Other">Other</option>
+                      </select>
                     </div>
+                    {isOtherCollege && (
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-700 block mb-1">
+                          Enter Diploma College Name <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="text"
+                          name="diplomaCollege"
+                          value={formData.diplomaCollege}
+                          onChange={handleChange}
+                          placeholder="Enter your college name"
+                          className="text-xs h-8"
+                          required
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="text-[11px] font-bold text-slate-700 block mb-1">
                         Diploma CGPA <span className="text-red-500">*</span>
