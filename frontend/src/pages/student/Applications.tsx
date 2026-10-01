@@ -101,7 +101,7 @@ export const Applications: React.FC = () => {
                     const isCurrent =
                       app.status === 'SELECTED' &&
                       (app.isCurrentPlacement ?? currentSelectedApp?.id === app.id);
-                    const isSuperseded =
+                    const isReplaced =
                       app.status === 'SELECTED' && !isCurrent;
 
                     return (
@@ -143,9 +143,9 @@ export const Applications: React.FC = () => {
                               CURRENT PLACEMENT
                             </div>
                           )}
-                          {isSuperseded && (
+                          {isReplaced && (
                             <div className="mt-1.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block border border-slate-200">
-                              SUPERSEDED
+                              REPLACED
                             </div>
                           )}
                         </TableCell>

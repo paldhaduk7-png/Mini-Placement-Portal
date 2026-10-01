@@ -347,7 +347,7 @@ export const DriveDetails: React.FC = () => {
                             )}
                             {app.status === 'SELECTED' && app.isCurrentPlacement === false && (
                               <div className="mt-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded block w-max">
-                                SUPERSEDED
+                                REPLACED
                               </div>
                             )}
                           </TableCell>

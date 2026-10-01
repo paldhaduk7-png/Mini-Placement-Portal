@@ -331,7 +331,7 @@ export const StudentDetails: React.FC = () => {
                           <div className="text-sm font-semibold text-slate-600">₹{app.drive?.ctc || 0} LPA</div>
                           <div className="mt-1">
                             <span className="text-[10px] font-medium text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded block w-max">
-                              SUPERSEDED
+                              REPLACED
                             </span>
                           </div>
                         </div>
