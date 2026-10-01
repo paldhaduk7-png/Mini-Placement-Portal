@@ -18,6 +18,22 @@ export const studentService = {
     return response.data
   },
 
+  async uploadResume(file: File): Promise<{ message: string; student: Student }> {
+    const formData = new FormData()
+    formData.append('resume', file)
+    const response = await api.post<{ message: string; student: Student }>('/students/me/resume', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  async deleteResume(): Promise<{ message: string; student: Student }> {
+    const response = await api.delete<{ message: string; student: Student }>('/students/me/resume')
+    return response.data
+  },
+
   // TPO student management
   async getAllStudents(): Promise<{ success?: boolean; count?: number; data: Student[] }> {
     const response = await api.get('/tpo/students')

@@ -5,6 +5,8 @@ import {
   fetchStudentProfile,
   updateStudentProfile,
   submitStudentProfile,
+  uploadResume,
+  deleteResume,
 } from '@/features/student/studentSlice';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +29,12 @@ import {
   Send,
   XCircle,
   Camera,
+  FileText,
+  Upload,
+  Eye,
+  Trash2,
+  RefreshCw,
+  FileCheck,
 } from 'lucide-react';
 import { DEPARTMENTS } from '@/constants';
 import type { StudentType } from '@/types/student';
@@ -38,6 +46,7 @@ export const StudentProfile: React.FC = () => {
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isEditingRejected, setIsEditingRejected] = useState(false);
   const [isOtherCollege, setIsOtherCollege] = useState(false);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
 
   // Form State for Steps 1 & 2
   const [formData, setFormData] = useState({
@@ -273,6 +282,158 @@ export const StudentProfile: React.FC = () => {
     return true;
   };
 
+  const getResumeViewUrl = (url?: string | null) => {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    const baseUrl = (import.meta.env.VITE_API_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
+    return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  };
+
+  const handleResumeUpload = async (file: File) => {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('Only PDF resumes are accepted.');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Resume file size must not exceed 10MB.');
+      return;
+    }
+    setIsUploadingResume(true);
+    try {
+      await dispatch(uploadResume(file)).unwrap();
+      toast.success('Resume uploaded successfully!');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to upload resume');
+    } finally {
+      setIsUploadingResume(false);
+    }
+  };
+
+  const handleResumeDelete = async () => {
+    try {
+      await dispatch(deleteResume()).unwrap();
+      toast.success('Resume removed.');
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to remove resume');
+    }
+  };
+
+  const renderResumeUploader = () => {
+    return (
+      <div className="p-4 rounded-xl border border-slate-200 bg-white space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-blue-600" />
+            <h4 className="text-xs font-bold text-slate-800">
+              Resume <span className="text-red-500">*</span>
+            </h4>
+          </div>
+          {profile?.resumeUrl && (
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full flex items-center gap-1 border border-emerald-200">
+              <CheckCircle2 className="h-3 w-3" />
+              Resume uploaded
+            </span>
+          )}
+        </div>
+
+        <p className="text-xs text-slate-500">
+          Upload your latest resume in PDF format (max 10MB).
+        </p>
+
+        {profile?.resumeUrl ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-9 w-9 rounded-md bg-red-100/70 border border-red-200 flex items-center justify-center text-red-600 font-bold text-xs shrink-0">
+                PDF
+              </div>
+              <div className="min-w-0">
+                <span className="text-xs font-semibold text-slate-800 truncate block">
+                  {profile.resumeFileName || 'Student_Resume.pdf'}
+                </span>
+                <span className="text-[11px] text-slate-400 block">
+                  {profile.resumeUploadedAt ? `Uploaded ${formatDate(profile.resumeUploadedAt)}` : 'PDF Document'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <a
+                href={getResumeViewUrl(profile.resumeUrl)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-md text-xs font-semibold transition-colors"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                View
+              </a>
+
+              <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-md text-xs font-semibold cursor-pointer transition-colors">
+                <RefreshCw className={`h-3.5 w-3.5 ${isUploadingResume ? 'animate-spin' : ''}`} />
+                Replace
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  className="hidden"
+                  disabled={isUploadingResume}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) handleResumeUpload(file);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+
+              <button
+                type="button"
+                onClick={handleResumeDelete}
+                disabled={isUploadingResume}
+                title="Remove resume"
+                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center hover:border-blue-400 bg-slate-50/50 transition-colors">
+            <FileText className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-xs font-medium text-slate-700 mb-1">
+              No resume uploaded yet
+            </p>
+            <p className="text-[11px] text-slate-500 mb-3">
+              A PDF resume is required before submitting your profile.
+            </p>
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold cursor-pointer shadow-xs transition-colors">
+              {isUploadingResume ? (
+                <>
+                  <LoadingSpinner size="sm" className="border-white" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4" />
+                  Choose File (PDF)
+                </>
+              )}
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                disabled={isUploadingResume}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleResumeUpload(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const handleNextStep1 = () => {
     if (validateStep1()) {
       setActiveStep(2);
@@ -281,12 +442,21 @@ export const StudentProfile: React.FC = () => {
 
   const handleNextStep2 = () => {
     if (validateStep2()) {
+      if (!profile?.resumeUrl) {
+        toast.error('Please upload your resume before submitting your profile.');
+        return;
+      }
       setActiveStep(3);
     }
   };
 
   const handleSubmitProfile = async () => {
     try {
+      if (!profile?.resumeUrl) {
+        toast.error('Please upload your resume before submitting your profile.');
+        return;
+      }
+
       // 1. Save updated profile data to backend via PUT /api/students/me
       const updatePayload: any = {
         fullName: formData.fullName.trim(),
@@ -547,6 +717,49 @@ export const StudentProfile: React.FC = () => {
                   <dd className="font-bold text-slate-900">{profile.activeBacklogs}</dd>
                 </div>
               </dl>
+            </CardContent>
+          </Card>
+
+          {/* Resume Document Card */}
+          <Card className="border-slate-200 shadow-sm md:col-span-2">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Resume Document</h3>
+              </div>
+              <Badge variant="outline" className="border-slate-300 text-slate-600 text-xs">
+                Profile Locked
+              </Badge>
+            </div>
+            <CardContent className="p-5">
+              {profile.resumeUrl ? (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl bg-slate-50 border border-slate-200">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-lg bg-red-100/80 border border-red-200 flex items-center justify-center text-red-600 font-bold text-xs shrink-0">
+                      PDF
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-bold text-slate-800 truncate">
+                        {profile.resumeFileName || 'Student_Resume.pdf'}
+                      </h4>
+                      <p className="text-[11px] text-slate-500">
+                        {profile.resumeUploadedAt ? `Uploaded on ${formatDate(profile.resumeUploadedAt)}` : 'PDF Document'}
+                      </p>
+                    </div>
+                  </div>
+                  <a
+                    href={getResumeViewUrl(profile.resumeUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold transition-colors shadow-xs shrink-0"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    View Resume
+                  </a>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 italic">No resume uploaded.</p>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -1019,6 +1232,9 @@ export const StudentProfile: React.FC = () => {
               </div>
             </div>
 
+            {/* Resume Upload Section in Step 2 */}
+            {renderResumeUploader()}
+
             <div className="flex justify-between pt-4 border-t border-slate-100">
               <Button
                 variant="outline"
@@ -1193,6 +1409,19 @@ export const StudentProfile: React.FC = () => {
               </div>
             </div>
 
+            {/* Section 4: Resume Document */}
+            <div className="relative p-3 rounded-xl border border-slate-200 bg-white shadow-xs">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="text-[10px] font-bold text-blue-800 uppercase tracking-wider bg-blue-50 px-2 py-0.5 rounded">
+                  Resume Document
+                </h4>
+                <Button variant="ghost" size="sm" onClick={() => setActiveStep(2)} className="text-[11px] text-blue-600 hover:bg-blue-50 h-6 px-2 -mt-1 -mr-1">
+                  <Edit3 className="h-3 w-3 mr-1" /> Edit
+                </Button>
+              </div>
+              {renderResumeUploader()}
+            </div>
+
             {/* Bottom Actions */}
             <div className="flex justify-between pt-4 border-t border-slate-100">
               <Button
@@ -1204,7 +1433,13 @@ export const StudentProfile: React.FC = () => {
                 Back
               </Button>
               <Button
-                onClick={() => setIsConfirmDialogOpen(true)}
+                onClick={() => {
+                  if (!profile?.resumeUrl) {
+                    toast.error('Please upload your resume before submitting your profile.');
+                    return;
+                  }
+                  setIsConfirmDialogOpen(true);
+                }}
                 isLoading={isSubmitting}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-6 h-8"
               >

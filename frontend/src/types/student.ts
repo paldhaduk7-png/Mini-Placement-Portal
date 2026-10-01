@@ -30,6 +30,9 @@ export interface Student {
   diplomaBranch?: string | null
   diplomaCollege?: string | null
   profilePhoto?: string | null
+  resumeUrl?: string | null
+  resumeFileName?: string | null
+  resumeUploadedAt?: string | null
 
   isProfileLocked: boolean
   verificationStatus: VerificationStatus
@@ -72,4 +75,7 @@ export interface StudentProfileFormValues {
   diplomaBranch?: string | null
   diplomaCollege?: string | null
   profilePhoto?: string | null
+  resumeUrl?: string | null
+  resumeFileName?: string | null
+  resumeUploadedAt?: string | null
 }

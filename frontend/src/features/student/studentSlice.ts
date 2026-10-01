@@ -52,6 +52,30 @@ export const submitStudentProfile = createAsyncThunk(
   }
 )
 
+export const uploadResume = createAsyncThunk(
+  'student/uploadResume',
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const data = await studentService.uploadResume(file)
+      return data.student
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to upload resume')
+    }
+  }
+)
+
+export const deleteResume = createAsyncThunk(
+  'student/deleteResume',
+  async (_, { rejectWithValue }) => {
+    try {
+      const data = await studentService.deleteResume()
+      return data.student
+    } catch (err: any) {
+      return rejectWithValue(err.message || 'Failed to delete resume')
+    }
+  }
+)
+
 export const studentSlice = createSlice({
   name: 'student',
   initialState,
@@ -107,6 +131,36 @@ export const studentSlice = createSlice({
       .addCase(submitStudentProfile.rejected, (state, action) => {
         state.isSubmitting = false
         state.error = (action.payload as string) || 'Failed to submit profile'
+      })
+
+      // Upload Resume
+      .addCase(uploadResume.pending, (state) => {
+        state.isSubmitting = true
+        state.error = null
+      })
+      .addCase(uploadResume.fulfilled, (state, action: PayloadAction<Student>) => {
+        state.isSubmitting = false
+        state.profile = action.payload
+        state.error = null
+      })
+      .addCase(uploadResume.rejected, (state, action) => {
+        state.isSubmitting = false
+        state.error = (action.payload as string) || 'Failed to upload resume'
+      })
+
+      // Delete Resume
+      .addCase(deleteResume.pending, (state) => {
+        state.isSubmitting = true
+        state.error = null
+      })
+      .addCase(deleteResume.fulfilled, (state, action: PayloadAction<Student>) => {
+        state.isSubmitting = false
+        state.profile = action.payload
+        state.error = null
+      })
+      .addCase(deleteResume.rejected, (state, action) => {
+        state.isSubmitting = false
+        state.error = (action.payload as string) || 'Failed to delete resume'
       })
   },
 })
