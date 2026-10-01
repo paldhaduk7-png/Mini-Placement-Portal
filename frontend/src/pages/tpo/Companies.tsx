@@ -21,7 +21,6 @@ import {
   Search,
   Trash2,
   Pencil,
-  History,
 } from 'lucide-react';
 import type { Company } from '@/types/company';
 
@@ -210,17 +209,6 @@ export const Companies: React.FC = () => {
                         className="h-8 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-200"
                       >
                         <Link to={`/tpo/companies/${comp.id}`}>Company Details</Link>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="h-8 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-slate-50 border-slate-200"
-                      >
-                        <Link to={`/tpo/companies/${comp.id}?tab=history`}>
-                          <History className="h-3.5 w-3.5 mr-1 text-slate-500" />
-                          History
-                        </Link>
                       </Button>
                       <Button
                         variant="ghost"

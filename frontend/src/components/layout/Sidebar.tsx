@@ -10,6 +10,7 @@ import {
   FileText,
   LogOut,
   ShieldCheck,
+  History,
 } from 'lucide-react'
 import { useAppDispatch } from '../../hooks/useAppDispatch'
 import { useAppSelector } from '../../hooks/useAppSelector'
@@ -38,6 +39,7 @@ export function Sidebar({ className, onClose }: { className?: string; onClose?: 
     { name: 'Companies', path: '/tpo/companies', icon: Building2 },
     { name: 'Recruitment Drives', path: '/tpo/drives', icon: Briefcase },
     { name: 'Applications', path: '/tpo/applications', icon: FileText },
+    { name: 'History', path: '/tpo/history', icon: History },
   ]
 
   const links = isTPO ? tpoLinks : studentLinks
