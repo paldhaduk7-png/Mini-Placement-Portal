@@ -135,32 +135,31 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                   )}
                 </TableCell>
                 <TableCell>
-                  {onStatusChange ? (
-                    <select
-                      value={app.status}
-                      disabled={isUpdating}
-                      onChange={(e) => onStatusChange(app.id, e.target.value as ApplicationStatus)}
-                      aria-label="Update Application Status"
-                      className="text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                      <option value="APPLIED">APPLIED</option>
-                      <option value="SHORTLISTED">SHORTLISTED</option>
-                      <option value="SELECTED">SELECTED</option>
-                      <option value="REJECTED">REJECTED</option>
-                    </select>
-                  ) : (
-                    <span className="text-xs text-slate-400">-</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-right whitespace-nowrap">
-                  <div className="inline-flex items-center justify-end gap-2">
+                  <div className="flex flex-col items-start gap-1.5">
+                    {onStatusChange ? (
+                      <select
+                        value={app.status}
+                        disabled={isUpdating}
+                        onChange={(e) => onStatusChange(app.id, e.target.value as ApplicationStatus)}
+                        aria-label="Update Application Status"
+                        className="text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
+                      >
+                        <option value="APPLIED">APPLIED</option>
+                        <option value="SHORTLISTED">SHORTLISTED</option>
+                        <option value="SELECTED">SELECTED</option>
+                        <option value="REJECTED">REJECTED</option>
+                      </select>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
+
                     {app.status === 'SHORTLISTED' && onScheduleInterview && (
                       app.interviews && app.interviews.length > 0 ? (
                         <button
                           type="button"
                           onClick={() => onScheduleInterview(app, app.interviews![0])}
                           title="Click to view or edit interview details"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
                         >
                           <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
                           Interview Scheduled
@@ -170,25 +169,26 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                           type="button"
                           onClick={() => onScheduleInterview(app, undefined)}
                           title="Schedule interview for this candidate"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-semibold transition-colors cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
                         >
                           <CalendarPlus className="h-3.5 w-3.5 text-blue-600" />
                           Schedule Interview
                         </button>
                       )
                     )}
-
-                    {student?.id ? (
-                      <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                        <Link to={`/tpo/students/${student.id}`}>
-                          <Eye className="h-3.5 w-3.5 mr-1" />
-                          Profile
-                        </Link>
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-slate-400">-</span>
-                    )}
                   </div>
+                </TableCell>
+                <TableCell className="text-right whitespace-nowrap">
+                  {student?.id ? (
+                    <Button variant="ghost" size="sm" asChild className="h-7 px-2 text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                      <Link to={`/tpo/students/${student.id}`}>
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        Profile
+                      </Link>
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-slate-400">-</span>
+                  )}
                 </TableCell>
               </TableRow>
             );
