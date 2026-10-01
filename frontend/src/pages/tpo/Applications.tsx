@@ -12,7 +12,7 @@ import type { Application, ApplicationStatus, Interview } from '@/types/applicat
 export const Applications: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [updatingAppIds, setUpdatingAppIds] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [scheduleApp, setScheduleApp] = useState<{
@@ -38,30 +38,131 @@ export const Applications: React.FC = () => {
   };
 
   const handleStatusChange = async (appId: string, newStatus: ApplicationStatus) => {
-    setIsUpdating(true);
+    // 1. Prevent double requests on the same application
+    if (updatingAppIds[appId]) return;
+
+    const targetApp = applications.find((a) => a.id === appId);
+    if (!targetApp || targetApp.status === newStatus) return;
+
+    // Snapshot state for rollback if network fails
+    const previousApplications = applications;
+    const studentId = targetApp.student?.id;
+
+    // 2. Lock only this application row
+    setUpdatingAppIds((prev) => ({ ...prev, [appId]: true }));
+
+    // 3. OPTIMISTIC UI UPDATE: Immediate UI update
+    setApplications((prevApps) =>
+      prevApps.map((app) => {
+        if (app.id === appId) {
+          return {
+            ...app,
+            status: newStatus,
+            isCurrentPlacement: newStatus === 'SELECTED' ? true : false,
+          };
+        }
+        // If newly SELECTED, any previous SELECTED application for this student becomes REPLACED
+        if (
+          newStatus === 'SELECTED' &&
+          studentId &&
+          app.student?.id === studentId &&
+          app.status === 'SELECTED'
+        ) {
+          return {
+            ...app,
+            isCurrentPlacement: false,
+          };
+        }
+        return app;
+      })
+    );
+
+    // 4. Send backend API request in the background
     try {
-      await applicationService.updateStatus(appId, newStatus);
-      toast.success(`Application updated to ${newStatus}`);
-      await loadApplications();
+      const res = await applicationService.updateStatus(appId, newStatus);
+      if (res?.data) {
+        setApplications((prevApps) =>
+          prevApps.map((app) => {
+            if (app.id === appId) {
+              return {
+                ...app,
+                ...res.data,
+                student: res.data.student || app.student,
+                drive: res.data.drive || app.drive,
+                interviews: res.data.interviews || app.interviews,
+              };
+            }
+            if (
+              newStatus === 'SELECTED' &&
+              studentId &&
+              app.student?.id === studentId &&
+              app.id !== appId
+            ) {
+              return {
+                ...app,
+                isCurrentPlacement: false,
+              };
+            }
+            return app;
+          })
+        );
+      }
+      toast.success('Application status updated successfully');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update application status.');
+      // 5. ROLLBACK ON FAILURE
+      setApplications(previousApplications);
+      const errorMessage =
+        err?.response?.data?.message ||
+        err.message ||
+        'Failed to update application status. Please try again.';
+      toast.error(errorMessage);
     } finally {
-      setIsUpdating(false);
+      // 6. Release lock on this row
+      setUpdatingAppIds((prev) => {
+        const next = { ...prev };
+        delete next[appId];
+        return next;
+      });
     }
   };
 
   const handleSaveInterview = async (applicationId: string, data: any) => {
     try {
       if (scheduleApp?.existingInterview) {
-        await applicationService.updateInterview(applicationId, scheduleApp.existingInterview.id, data);
+        const res = await applicationService.updateInterview(applicationId, scheduleApp.existingInterview.id, data);
         toast.success('Interview updated successfully');
+        if (res?.data) {
+          setApplications((prevApps) =>
+            prevApps.map((app) => {
+              if (app.id === applicationId) {
+                const updated = res.data;
+                const interviews = app.interviews
+                  ? [updated, ...app.interviews.filter((i) => i.id !== updated.id)]
+                  : [updated];
+                return { ...app, interviews };
+              }
+              return app;
+            })
+          );
+        }
       } else {
-        await applicationService.scheduleInterview(applicationId, data);
+        const res = await applicationService.scheduleInterview(applicationId, data);
         toast.success('Interview scheduled successfully');
+        if (res?.data) {
+          setApplications((prevApps) =>
+            prevApps.map((app) => {
+              if (app.id === applicationId) {
+                const newIntv = res.data;
+                const interviews = [newIntv, ...(app.interviews || [])];
+                return { ...app, interviews };
+              }
+              return app;
+            })
+          );
+        }
       }
-      await loadApplications();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to schedule/update interview.');
+      toast.error(err?.response?.data?.message || err.message || 'Failed to schedule/update interview.');
       throw err;
     }
   };
@@ -74,7 +175,9 @@ export const Applications: React.FC = () => {
     const matchesSearch = !term || studentMatch || companyMatch || roleMatch;
 
     const matchesStatus =
-      statusFilter === 'ALL' || app.status === statusFilter;
+      statusFilter === 'ALL' ||
+      app.status === statusFilter ||
+      Boolean(updatingAppIds[app.id]);
 
     return matchesSearch && matchesStatus;
   });
@@ -139,7 +242,7 @@ export const Applications: React.FC = () => {
           applications={filteredApplications}
           onStatusChange={handleStatusChange}
           onScheduleInterview={(app, interview) => setScheduleApp({ application: app, existingInterview: interview })}
-          isUpdating={isUpdating}
+          updatingAppIds={updatingAppIds}
         />
       )}
 

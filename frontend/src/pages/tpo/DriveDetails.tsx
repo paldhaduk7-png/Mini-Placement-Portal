@@ -44,7 +44,7 @@ export const DriveDetails: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'eligible' | 'applications'>(
     requestedTab === 'applications' ? 'applications' : 'eligible'
   );
-  const [isUpdatingApp, setIsUpdatingApp] = useState(false);
+  const [updatingAppIds, setUpdatingAppIds] = useState<Record<string, boolean>>({});
   const [scheduleApp, setScheduleApp] = useState<{ application: Application; existingInterview?: Interview } | null>(null);
 
   useEffect(() => {
@@ -93,30 +93,128 @@ export const DriveDetails: React.FC = () => {
   };
 
   const handleStatusChange = async (appId: string, newStatus: ApplicationStatus) => {
-    setIsUpdatingApp(true);
+    if (updatingAppIds[appId]) return;
+
+    const targetApp = applications.find((a) => a.id === appId);
+    if (!targetApp || targetApp.status === newStatus) return;
+
+    const previousApplications = applications;
+    const studentId = targetApp.student?.id;
+
+    // 1. Lock only this application row
+    setUpdatingAppIds((prev) => ({ ...prev, [appId]: true }));
+
+    // 2. OPTIMISTIC UI UPDATE
+    setApplications((prevApps) =>
+      prevApps.map((app) => {
+        if (app.id === appId) {
+          return {
+            ...app,
+            status: newStatus,
+            isCurrentPlacement: newStatus === 'SELECTED' ? true : false,
+          };
+        }
+        if (
+          newStatus === 'SELECTED' &&
+          studentId &&
+          app.student?.id === studentId &&
+          app.status === 'SELECTED'
+        ) {
+          return {
+            ...app,
+            isCurrentPlacement: false,
+          };
+        }
+        return app;
+      })
+    );
+
+    // 3. Send API request in background
     try {
-      await applicationService.updateStatus(appId, newStatus);
-      toast.success(`Application updated to ${newStatus}`);
-      if (id) loadDriveData(id);
+      const res = await applicationService.updateStatus(appId, newStatus);
+      if (res?.data) {
+        setApplications((prevApps) =>
+          prevApps.map((app) => {
+            if (app.id === appId) {
+              return {
+                ...app,
+                ...res.data,
+                student: res.data.student || app.student,
+                drive: res.data.drive || app.drive,
+                interviews: res.data.interviews || app.interviews,
+              };
+            }
+            if (
+              newStatus === 'SELECTED' &&
+              studentId &&
+              app.student?.id === studentId &&
+              app.id !== appId
+            ) {
+              return {
+                ...app,
+                isCurrentPlacement: false,
+              };
+            }
+            return app;
+          })
+        );
+      }
+      toast.success('Application status updated successfully');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update application status.');
+      // 4. Rollback on failure
+      setApplications(previousApplications);
+      const errorMessage =
+        err?.response?.data?.message ||
+        err.message ||
+        'Failed to update application status. Please try again.';
+      toast.error(errorMessage);
     } finally {
-      setIsUpdatingApp(false);
+      // 5. Release lock on this row
+      setUpdatingAppIds((prev) => {
+        const next = { ...prev };
+        delete next[appId];
+        return next;
+      });
     }
   };
 
   const handleSaveInterview = async (applicationId: string, data: any) => {
     try {
       if (scheduleApp?.existingInterview) {
-        await applicationService.updateInterview(applicationId, scheduleApp.existingInterview.id, data);
+        const res = await applicationService.updateInterview(applicationId, scheduleApp.existingInterview.id, data);
         toast.success('Interview updated successfully');
+        if (res?.data) {
+          setApplications((prevApps) =>
+            prevApps.map((app) => {
+              if (app.id === applicationId) {
+                const updated = res.data;
+                const interviews = app.interviews
+                  ? [updated, ...app.interviews.filter((i) => i.id !== updated.id)]
+                  : [updated];
+                return { ...app, interviews };
+              }
+              return app;
+            })
+          );
+        }
       } else {
-        await applicationService.scheduleInterview(applicationId, data);
+        const res = await applicationService.scheduleInterview(applicationId, data);
         toast.success('Interview scheduled successfully');
+        if (res?.data) {
+          setApplications((prevApps) =>
+            prevApps.map((app) => {
+              if (app.id === applicationId) {
+                const newIntv = res.data;
+                const interviews = [newIntv, ...(app.interviews || [])];
+                return { ...app, interviews };
+              }
+              return app;
+            })
+          );
+        }
       }
-      if (id) loadDriveData(id); // Reload
     } catch (err: any) {
-      toast.error(err.message || 'Failed to schedule/update interview.');
+      toast.error(err?.response?.data?.message || err.message || 'Failed to schedule/update interview.');
       throw err;
     }
   };
@@ -443,17 +541,24 @@ export const DriveDetails: React.FC = () => {
                             )}
                           </TableCell>
                           <TableCell>
-                            <select
-                              value={app.status}
-                              disabled={isUpdatingApp}
-                              onChange={(e) => handleStatusChange(app.id, e.target.value as ApplicationStatus)}
-                              className="text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            >
-                              <option value="APPLIED">APPLIED</option>
-                              <option value="SHORTLISTED">SHORTLISTED</option>
-                              <option value="SELECTED">SELECTED</option>
-                              <option value="REJECTED">REJECTED</option>
-                            </select>
+                            <div className="flex items-center gap-1.5">
+                              <select
+                                value={app.status}
+                                disabled={Boolean(updatingAppIds[app.id])}
+                                onChange={(e) => handleStatusChange(app.id, e.target.value as ApplicationStatus)}
+                                aria-label="Update Application Status"
+                                title={updatingAppIds[app.id] ? 'Saving status...' : undefined}
+                                className="text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-wait transition-opacity"
+                              >
+                                <option value="APPLIED">APPLIED</option>
+                                <option value="SHORTLISTED">SHORTLISTED</option>
+                                <option value="SELECTED">SELECTED</option>
+                                <option value="REJECTED">REJECTED</option>
+                              </select>
+                              {updatingAppIds[app.id] && (
+                                <span className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-ping" title="Saving in background..." />
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-right">
                             {app.student?.id && (

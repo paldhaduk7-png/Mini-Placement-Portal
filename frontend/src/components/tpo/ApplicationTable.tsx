@@ -19,6 +19,7 @@ interface ApplicationTableProps {
   onStatusChange?: (applicationId: string, newStatus: ApplicationStatus) => void;
   onScheduleInterview?: (app: Application, existingInterview?: Interview) => void;
   isUpdating?: boolean;
+  updatingAppIds?: Record<string, boolean>;
 }
 
 export const ApplicationTable: React.FC<ApplicationTableProps> = ({
@@ -26,6 +27,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
   onStatusChange,
   onScheduleInterview,
   isUpdating,
+  updatingAppIds,
 }) => {
   const getStatusBadgeVariant = (status: ApplicationStatus) => {
     switch (status) {
@@ -137,18 +139,24 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                 <TableCell>
                   <div className="flex flex-col items-start gap-1.5">
                     {onStatusChange ? (
-                      <select
-                        value={app.status}
-                        disabled={isUpdating}
-                        onChange={(e) => onStatusChange(app.id, e.target.value as ApplicationStatus)}
-                        aria-label="Update Application Status"
-                        className="text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-50"
-                      >
-                        <option value="APPLIED">APPLIED</option>
-                        <option value="SHORTLISTED">SHORTLISTED</option>
-                        <option value="SELECTED">SELECTED</option>
-                        <option value="REJECTED">REJECTED</option>
-                      </select>
+                      <div className="flex items-center gap-1.5">
+                        <select
+                          value={app.status}
+                          disabled={Boolean(updatingAppIds?.[app.id] ?? isUpdating)}
+                          onChange={(e) => onStatusChange(app.id, e.target.value as ApplicationStatus)}
+                          aria-label="Update Application Status"
+                          title={updatingAppIds?.[app.id] ? 'Saving status...' : undefined}
+                          className="text-xs font-medium bg-slate-50 border border-slate-300 rounded px-2 py-1 text-slate-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-wait transition-opacity"
+                        >
+                          <option value="APPLIED">APPLIED</option>
+                          <option value="SHORTLISTED">SHORTLISTED</option>
+                          <option value="SELECTED">SELECTED</option>
+                          <option value="REJECTED">REJECTED</option>
+                        </select>
+                        {updatingAppIds?.[app.id] && (
+                          <span className="inline-block h-2 w-2 rounded-full bg-blue-500 animate-ping" title="Saving in background..." />
+                        )}
+                      </div>
                     ) : (
                       <span className="text-xs text-slate-400">-</span>
                     )}
