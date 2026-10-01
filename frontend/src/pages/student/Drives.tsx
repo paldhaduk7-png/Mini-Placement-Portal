@@ -27,15 +27,14 @@ export const Drives: React.FC = () => {
     const loadDrives = async () => {
       setIsLoadingDrives(true);
       try {
-        const res = await driveService.getAllDrives();
+        const res = await driveService.getStudentDrives();
         if (Array.isArray(res)) {
           setDrives(res);
         } else if (res?.data && Array.isArray(res.data)) {
           setDrives(res.data);
         }
       } catch (err: any) {
-        // If student role does not have direct access to /api/tpo/drives, derive from applications
-        console.warn('Recruitment drives endpoint returned:', err.message);
+        console.error('Failed to load recruitment drives:', err);
       } finally {
         setIsLoadingDrives(false);
       }
