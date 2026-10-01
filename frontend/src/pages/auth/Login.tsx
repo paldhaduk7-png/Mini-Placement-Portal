@@ -86,9 +86,10 @@ export const Login: React.FC = () => {
       if (loginUser.fulfilled.match(resultAction)) {
         const loggedUser = resultAction.payload.user;
 
-        if (activeTab !== loggedUser.role) {
+        const userRole = loggedUser.role as string;
+        if ((activeTab as string) !== userRole) {
           dispatch(logout());
-          if (loggedUser.role === 'STUDENT') {
+          if (userRole === 'STUDENT') {
             toast.error('Account found. Please login from the Student tab.');
           } else {
             toast.error('Account found. Please login from the TPO tab.');
@@ -99,7 +100,7 @@ export const Login: React.FC = () => {
         toast.success(`Welcome back!`);
 
         // Redirect according to real user role returned by backend
-        if (loggedUser.role === 'TPO') {
+        if (userRole === 'TPO') {
           navigate('/tpo/dashboard', { replace: true });
         } else {
           navigate('/student/dashboard', { replace: true });

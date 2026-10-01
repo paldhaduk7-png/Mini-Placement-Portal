@@ -43,6 +43,18 @@ export const CreateDrive: React.FC = () => {
       prev.includes(dept) ? prev.filter((d) => d !== dept) : [...prev, dept]
     );
   };
+
+  const isAllBranchesSelected =
+    DEPARTMENTS.length > 0 && DEPARTMENTS.every((dept) => allowedDepartments.includes(dept));
+
+  const handleSelectAllBranches = () => {
+    if (isAllBranchesSelected) {
+      setAllowedDepartments([]);
+    } else {
+      setAllowedDepartments([...DEPARTMENTS]);
+    }
+  };
+
   const [deadline, setDeadline] = useState(
     new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
   );
@@ -298,7 +310,31 @@ export const CreateDrive: React.FC = () => {
               </div>
               
               <div className="mt-4">
-                <label className="block text-xs font-medium text-slate-600 mb-2">Allowed Branches (Leave empty to allow all)</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-medium text-slate-600">
+                    Allowed Branches <span className="text-slate-400 font-normal">(Leave empty to allow all)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleSelectAllBranches}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+                  >
+                    {isAllBranchesSelected ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
+
+                <div className="mb-2.5 pb-2 border-b border-slate-100 flex items-center">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-800 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isAllBranchesSelected}
+                      onChange={handleSelectAllBranches}
+                      className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>Select All Branches</span>
+                  </label>
+                </div>
+
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {DEPARTMENTS.map((dept) => (
                     <label key={dept} className="flex items-center gap-2 text-xs text-slate-700 cursor-pointer">
