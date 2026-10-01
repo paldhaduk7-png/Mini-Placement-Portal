@@ -138,28 +138,22 @@ export class EligibilityService {
     }
 
     // 10. Package-based Placement Eligibility Check
-    const selectedApplications = await prisma.application.findMany({
+    const currentPlacement = await prisma.application.findFirst({
       where: {
         studentId: student.id,
-        status: 'SELECTED',
+        isCurrentPlacement: true,
       },
       include: {
         drive: true,
       },
     });
 
-    if (selectedApplications.length > 0) {
-      let maxCtc = 0;
-      for (const app of selectedApplications) {
-        if (app.drive.ctc > maxCtc) {
-          maxCtc = app.drive.ctc;
-        }
-      }
-
-      const requiredPackage = maxCtc * 2;
+    if (currentPlacement) {
+      const currentCtc = currentPlacement.drive.ctc;
+      const requiredPackage = currentCtc * 2;
       if (drive.ctc < requiredPackage) {
         reasons.push(
-          `You have already been selected for a ₹${maxCtc} LPA package. This drive requires a minimum package of ₹${requiredPackage} LPA under the current placement eligibility rule.`
+          `You are currently placed with a ₹${currentCtc} LPA package. This drive requires a minimum package of ₹${requiredPackage} LPA under the current placement eligibility rule.`
         );
       }
     }

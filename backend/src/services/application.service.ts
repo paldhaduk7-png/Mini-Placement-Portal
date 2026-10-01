@@ -146,6 +146,7 @@ export class ApplicationService {
         id: true,
         status: true,
         remarks: true,
+        isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
         drive: {
@@ -195,6 +196,7 @@ export class ApplicationService {
         id: true,
         status: true,
         remarks: true,
+        isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
         drive: {
@@ -239,10 +241,10 @@ export class ApplicationService {
       throw error;
     }
 
-    const selectedApplications = await prisma.application.findMany({
+    const currentPlacement = await prisma.application.findFirst({
       where: {
         studentId: student.id,
-        status: ApplicationStatus.SELECTED,
+        isCurrentPlacement: true,
       },
       include: {
         drive: {
@@ -253,12 +255,9 @@ export class ApplicationService {
           },
         },
       },
-      orderBy: {
-        updatedAt: 'desc',
-      },
     });
 
-    if (selectedApplications.length === 0) {
+    if (!currentPlacement) {
       return {
         isSelected: false,
         selectedCompany: null,
@@ -267,23 +266,13 @@ export class ApplicationService {
       };
     }
 
-    // Follow the system placement source-of-truth from eligibility.service.ts:
-    // If multiple selected, take the highest package (maxCtc)
-    let selectedApp = selectedApplications[0];
-    let maxCtc = 0;
-    for (const app of selectedApplications) {
-      if (app.drive.ctc > maxCtc) {
-        maxCtc = app.drive.ctc;
-        selectedApp = app;
-      }
-    }
-
-    const minimumNextPackage = maxCtc * 2;
+    const currentCtc = currentPlacement.drive.ctc;
+    const minimumNextPackage = currentCtc * 2;
 
     return {
       isSelected: true,
-      selectedCompany: selectedApp.drive.company?.name || null,
-      selectedPackage: maxCtc,
+      selectedCompany: currentPlacement.drive.company?.name || null,
+      selectedPackage: currentCtc,
       minimumNextPackage,
     };
   }
@@ -326,6 +315,7 @@ export class ApplicationService {
         id: true,
         status: true,
         remarks: true,
+        isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
         student: {
@@ -368,6 +358,7 @@ export class ApplicationService {
       id: app.id,
       status: app.status,
       remarks: app.remarks,
+      isCurrentPlacement: app.isCurrentPlacement,
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
       student: {
@@ -455,6 +446,7 @@ export class ApplicationService {
       id: app.id,
       status: app.status,
       remarks: app.remarks,
+      isCurrentPlacement: app.isCurrentPlacement,
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
       student: {
@@ -511,21 +503,39 @@ export class ApplicationService {
       throw error;
     }
 
+    const dataToUpdate: any = {
+      status: normalizedStatus as ApplicationStatus,
+      remarks:
+        remarks !== undefined
+          ? remarks === null
+            ? null
+            : String(remarks).trim()
+          : existing.remarks,
+    };
+
+    if (normalizedStatus === ApplicationStatus.SELECTED && existing.status !== ApplicationStatus.SELECTED) {
+      // Unmark any existing current placement
+      await prisma.application.updateMany({
+        where: { studentId: existing.studentId, isCurrentPlacement: true },
+        data: { isCurrentPlacement: false },
+      });
+      dataToUpdate.isCurrentPlacement = true;
+    } else if (normalizedStatus !== ApplicationStatus.SELECTED && existing.status === ApplicationStatus.SELECTED) {
+      // If un-selecting an application that was the current placement
+      // To strictly satisfy TS we check if (existing as any).isCurrentPlacement
+      if ((existing as any).isCurrentPlacement) {
+        dataToUpdate.isCurrentPlacement = false;
+      }
+    }
+
     const updated = await prisma.application.update({
       where: { id: applicationId },
-      data: {
-        status: normalizedStatus as ApplicationStatus,
-        remarks:
-          remarks !== undefined
-            ? remarks === null
-              ? null
-              : String(remarks).trim()
-            : existing.remarks,
-      },
+      data: dataToUpdate,
       select: {
         id: true,
         status: true,
         remarks: true,
+        isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
         student: {
@@ -555,6 +565,7 @@ export class ApplicationService {
       id: updated.id,
       status: updated.status,
       remarks: updated.remarks,
+      isCurrentPlacement: (updated as any).isCurrentPlacement,
       appliedAt: updated.appliedAt,
       updatedAt: updated.updatedAt,
       student: {

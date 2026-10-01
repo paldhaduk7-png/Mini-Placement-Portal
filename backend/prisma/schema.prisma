@@ -183,4 +183,6 @@ model Application {
 
   // Prevents duplicate applications
   @@unique([studentId, driveId])
+  
+  isCurrentPlacement Boolean @default(false)
 }
