@@ -13,6 +13,8 @@ router.use(requireRole(Role.TPO));
 // TPO User Management
 router.get('/users', TpoUserController.getTpoUsers);
 router.post('/users', TpoUserController.createTpoUser);
+router.put('/users/:id', TpoUserController.updateTpoUser);
+router.delete('/users/:id', TpoUserController.deleteTpoUser);
 
 // TPO Profile Management (My Profile)
 router.get('/profile', TpoUserController.getMyProfile);
