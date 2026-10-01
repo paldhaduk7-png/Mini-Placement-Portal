@@ -208,8 +208,13 @@ export class AuthService {
     }
 
     // Generate 6 digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    let otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    // Fallback for development without SMTP
+    if (!config.mailUsername) {
+      otp = '123456';
+    }
 
     otpStore.set(email, { otp, expiresAt, verified: false });
 
@@ -302,8 +307,13 @@ export class AuthService {
     }
 
     // Generate 6 digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    let otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // Fallback for development without SMTP
+    if (!config.mailUsername) {
+      otp = '123456';
+    }
 
     otpStore.set(normalizedEmail, { otp, expiresAt, verified: false });
 
