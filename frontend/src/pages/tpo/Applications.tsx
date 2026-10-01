@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import applicationService from '@/services/application.service';
 import { ApplicationTable } from '@/components/tpo/ApplicationTable';
+import { ScheduleInterviewModal } from '@/components/tpo/ScheduleInterviewModal';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { FileCheck, Search } from 'lucide-react';
-import type { Application, ApplicationStatus } from '@/types/application';
+import type { Application, ApplicationStatus, Interview } from '@/types/application';
 
 export const Applications: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -14,6 +15,10 @@ export const Applications: React.FC = () => {
   const [isUpdating, setIsUpdating] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [scheduleApp, setScheduleApp] = useState<{
+    application: Application;
+    existingInterview?: Interview;
+  } | null>(null);
 
   useEffect(() => {
     loadApplications();
@@ -42,6 +47,22 @@ export const Applications: React.FC = () => {
       toast.error(err.message || 'Failed to update application status.');
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleSaveInterview = async (applicationId: string, data: any) => {
+    try {
+      if (scheduleApp?.existingInterview) {
+        await applicationService.updateInterview(applicationId, scheduleApp.existingInterview.id, data);
+        toast.success('Interview updated successfully');
+      } else {
+        await applicationService.scheduleInterview(applicationId, data);
+        toast.success('Interview scheduled successfully');
+      }
+      await loadApplications();
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to schedule/update interview.');
+      throw err;
     }
   };
 
@@ -117,7 +138,17 @@ export const Applications: React.FC = () => {
         <ApplicationTable
           applications={filteredApplications}
           onStatusChange={handleStatusChange}
+          onScheduleInterview={(app, interview) => setScheduleApp({ application: app, existingInterview: interview })}
           isUpdating={isUpdating}
+        />
+      )}
+
+      {scheduleApp && (
+        <ScheduleInterviewModal
+          application={scheduleApp.application}
+          existingInterview={scheduleApp.existingInterview}
+          onClose={() => setScheduleApp(null)}
+          onSave={handleSaveInterview}
         />
       )}
     </div>

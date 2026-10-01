@@ -28,7 +28,16 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
   useEffect(() => {
     if (existingInterview) {
       if (existingInterview.interviewDate) {
-        setDate(new Date(existingInterview.interviewDate).toISOString().split('T')[0]);
+        const rawDate = existingInterview.interviewDate;
+        if (typeof rawDate === 'string' && rawDate.includes('T')) {
+          const d = new Date(rawDate);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          setDate(`${year}-${month}-${day}`);
+        } else if (typeof rawDate === 'string') {
+          setDate(rawDate.substring(0, 10));
+        }
       }
       setTime(existingInterview.interviewTime || '');
       setRound(existingInterview.round || 'Technical Round');
@@ -90,7 +99,7 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                 type="date"
                 required
                 value={date}
-                min={new Date().toISOString().split('T')[0]}
+                min={existingInterview ? undefined : new Date().toISOString().split('T')[0]}
                 onChange={(e) => setDate(e.target.value)}
                 className="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
               />

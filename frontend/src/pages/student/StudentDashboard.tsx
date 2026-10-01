@@ -33,7 +33,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import type { RecruitmentDrive } from '@/types/drive';
-import type { PlacementStatus } from '@/types/application';
+import type { PlacementStatus, Application, Interview } from '@/types/application';
 
 export const StudentDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -43,6 +43,10 @@ export const StudentDashboard: React.FC = () => {
 
   const [availableDrives, setAvailableDrives] = useState<RecruitmentDrive[]>([]);
   const [placementStatus, setPlacementStatus] = useState<PlacementStatus | null>(null);
+  const [selectedInterviewModal, setSelectedInterviewModal] = useState<{
+    app: Application;
+    interview: Interview;
+  } | null>(null);
 
   const loadDrives = async () => {
     try {
@@ -174,29 +178,75 @@ export const StudentDashboard: React.FC = () => {
 
       {/* Notice for Scheduled Interview */}
       {(() => {
-        const interviewApp = applications.find(app => app.interviews && app.interviews.length > 0 && app.status === 'SHORTLISTED');
-        if (interviewApp && interviewApp.interviews) {
-          const intv = interviewApp.interviews[0];
-          return (
-            <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
-              <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-sm font-semibold text-blue-900">
-                    Interview Scheduled: {interviewApp.drive?.company?.name || 'Company'}
-                  </h4>
-                  <p className="text-xs text-blue-800 mt-0.5 font-medium">
-                    {new Date(intv.interviewDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} at {intv.interviewTime} — {intv.round} ({intv.mode})
-                  </p>
+        const scheduledApps = applications.filter(
+          (app) => app.interviews && app.interviews.length > 0 && app.status === 'SHORTLISTED'
+        );
+        if (scheduledApps.length === 0) return null;
+
+        return (
+          <div className="space-y-4">
+            {scheduledApps.map((interviewApp) => {
+              const intv = interviewApp.interviews![0];
+              const companyName = interviewApp.drive?.company?.name || 'Company';
+              const formattedDate = new Date(intv.interviewDate).toLocaleDateString('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric',
+              });
+
+              return (
+                <div
+                  key={interviewApp.id}
+                  className="p-5 rounded-2xl bg-gradient-to-r from-blue-50/90 via-indigo-50/60 to-blue-50/90 border border-blue-200/90 shadow-xs"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🎯</span>
+                        <h3 className="text-base font-bold text-slate-900 tracking-tight">
+                          Interview Scheduled
+                        </h3>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 text-xs text-slate-700">
+                        <div>
+                          <span className="text-slate-500 font-medium">Company:</span>{' '}
+                          <span className="font-bold text-slate-900">{companyName}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">Date:</span>{' '}
+                          <span className="font-bold text-slate-900">{formattedDate}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">Time:</span>{' '}
+                          <span className="font-bold text-slate-900">{intv.interviewTime}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">Round:</span>{' '}
+                          <span className="font-bold text-slate-900">{intv.round}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">Mode:</span>{' '}
+                          <span className="font-bold text-slate-900">{intv.mode}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2 pt-1 md:pt-0">
+                      <Button
+                        size="sm"
+                        onClick={() => setSelectedInterviewModal({ app: interviewApp, interview: intv })}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs"
+                      >
+                        View Interview Details
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <Button size="sm" asChild className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 text-xs shadow-sm">
-                <Link to={`/student/drives/${interviewApp.driveId}`}>View Details</Link>
-              </Button>
-            </div>
-          );
-        }
-        return null;
+              );
+            })}
+          </div>
+        );
       })()}
 
       {/* Top Stat Cards matching Step 4 Reference Image */}
@@ -385,6 +435,128 @@ export const StudentDashboard: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal for View Interview Details */}
+      {selectedInterviewModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 text-lg">
+                  🎯
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Interview Details
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    {selectedInterviewModal.app.drive?.company?.name || 'Company'} — {selectedInterviewModal.app.drive?.role || 'Role'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedInterviewModal(null)}
+                className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full p-1.5 transition-colors text-base"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="space-y-3.5 text-xs divide-y divide-slate-100">
+              <div className="grid grid-cols-2 gap-4 pt-1">
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Interview Date</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {new Date(selectedInterviewModal.interview.interviewDate).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Interview Time</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {selectedInterviewModal.interview.interviewTime}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 pt-3.5">
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Round</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {selectedInterviewModal.interview.round}
+                  </p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Mode</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {selectedInterviewModal.interview.mode}
+                  </p>
+                </div>
+              </div>
+
+              {selectedInterviewModal.interview.mode === 'ONLINE' ? (
+                <div className="pt-3.5 space-y-1.5">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Meeting Link</span>
+                  {selectedInterviewModal.interview.meetingLink ? (
+                    <div>
+                      <a
+                        href={selectedInterviewModal.interview.meetingLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold underline break-all"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                        {selectedInterviewModal.interview.meetingLink}
+                      </a>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 italic">No link provided</p>
+                  )}
+                </div>
+              ) : (
+                <div className="pt-3.5 space-y-1.5">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Interview Location</span>
+                  <p className="text-sm font-bold text-slate-900">
+                    {selectedInterviewModal.interview.location || 'To be communicated'}
+                  </p>
+                </div>
+              )}
+
+              {selectedInterviewModal.interview.instructions && (
+                <div className="pt-3.5 space-y-1.5">
+                  <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Instructions / Notes</span>
+                  <p className="text-xs text-slate-700 whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    {selectedInterviewModal.interview.instructions}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-2 flex items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                asChild
+                className="text-xs text-blue-600 hover:text-blue-800"
+              >
+                <Link to={`/student/drives/${selectedInterviewModal.app.driveId}`}>
+                  View Drive Details
+                </Link>
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => setSelectedInterviewModal(null)}
+                className="bg-slate-900 hover:bg-slate-800 text-white text-xs px-4"
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

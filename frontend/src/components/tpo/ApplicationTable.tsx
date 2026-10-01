@@ -11,18 +11,20 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
-import type { Application, ApplicationStatus } from '@/types/application';
-import { Eye, Building2, FileText } from 'lucide-react';
+import type { Application, ApplicationStatus, Interview } from '@/types/application';
+import { Eye, Building2, FileText, Calendar } from 'lucide-react';
 
 interface ApplicationTableProps {
   applications: Application[];
   onStatusChange?: (applicationId: string, newStatus: ApplicationStatus) => void;
+  onScheduleInterview?: (app: Application, existingInterview?: Interview) => void;
   isUpdating?: boolean;
 }
 
 export const ApplicationTable: React.FC<ApplicationTableProps> = ({
   applications,
   onStatusChange,
+  onScheduleInterview,
   isUpdating,
 }) => {
   const getStatusBadgeVariant = (status: ApplicationStatus) => {
@@ -52,7 +54,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Resume</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Current Status</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Update Status</TableHead>
-            <TableHead className="text-right text-xs font-semibold uppercase text-slate-500">Details</TableHead>
+            <TableHead className="text-right text-xs font-semibold uppercase text-slate-500">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -150,17 +152,44 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                     <span className="text-xs text-slate-400">-</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right">
-                  {student?.id ? (
-                    <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
-                      <Link to={`/tpo/students/${student.id}`}>
-                        <Eye className="h-4 w-4 mr-1" />
-                        Profile
-                      </Link>
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-slate-400">-</span>
-                  )}
+                <TableCell className="text-right whitespace-nowrap">
+                  <div className="inline-flex items-center justify-end gap-2">
+                    {app.status === 'SHORTLISTED' && onScheduleInterview && (
+                      app.interviews && app.interviews.length > 0 ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onScheduleInterview(app, app.interviews![0])}
+                          className="h-8 px-2.5 text-xs font-semibold text-emerald-700 border-emerald-300 bg-emerald-50 hover:bg-emerald-100 hover:text-emerald-800 flex items-center gap-1.5 shadow-xs whitespace-nowrap"
+                        >
+                          <Calendar className="h-3.5 w-3.5 text-emerald-600" />
+                          Interview Scheduled
+                        </Button>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => onScheduleInterview(app, undefined)}
+                          className="h-8 px-2.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-1.5 shadow-xs whitespace-nowrap"
+                        >
+                          <Calendar className="h-3.5 w-3.5" />
+                          Schedule Interview
+                        </Button>
+                      )
+                    )}
+
+                    {student?.id ? (
+                      <Button variant="ghost" size="sm" asChild className="h-8 px-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50">
+                        <Link to={`/tpo/students/${student.id}`}>
+                          <Eye className="h-4 w-4 mr-1" />
+                          Profile
+                        </Link>
+                      </Button>
+                    ) : (
+                      <span className="text-xs text-slate-400">-</span>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             );
