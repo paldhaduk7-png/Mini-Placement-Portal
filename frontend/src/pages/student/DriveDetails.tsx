@@ -220,6 +220,61 @@ export const DriveDetails: React.FC = () => {
         </div>
 
         {/* Tab Navigation */}
+        {existingApplication?.interviews && existingApplication.interviews.length > 0 && (
+          <div className="bg-blue-50/80 border-t border-b border-blue-100 p-6">
+            <h3 className="text-sm font-bold text-blue-900 mb-4 flex items-center gap-2">
+              <Calendar className="h-4 w-4" /> Interview Scheduled
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg p-3.5 border border-blue-100/50 shadow-sm">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Date & Time</span>
+                <span className="text-sm font-semibold text-slate-800">
+                  {new Date(existingApplication.interviews[0].interviewDate).toLocaleDateString('en-GB', {
+                    day: '2-digit', month: 'short', year: 'numeric'
+                  })} • {existingApplication.interviews[0].interviewTime}
+                </span>
+              </div>
+              <div className="bg-white rounded-lg p-3.5 border border-blue-100/50 shadow-sm">
+                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Round & Mode</span>
+                <span className="text-sm font-semibold text-slate-800">
+                  {existingApplication.interviews[0].round} ({existingApplication.interviews[0].mode})
+                </span>
+              </div>
+              
+              {existingApplication.interviews[0].mode === 'ONLINE' && existingApplication.interviews[0].meetingLink ? (
+                <div className="bg-white rounded-lg p-3.5 border border-blue-100/50 shadow-sm sm:col-span-2 flex items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Meeting Link</span>
+                    <a href={existingApplication.interviews[0].meetingLink} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-blue-600 hover:underline break-all">
+                      {existingApplication.interviews[0].meetingLink}
+                    </a>
+                  </div>
+                  <Button asChild size="sm" className="bg-blue-600 hover:bg-blue-700 text-white shrink-0">
+                    <a href={existingApplication.interviews[0].meetingLink} target="_blank" rel="noopener noreferrer">Join Interview</a>
+                  </Button>
+                </div>
+              ) : existingApplication.interviews[0].location ? (
+                <div className="bg-white rounded-lg p-3.5 border border-blue-100/50 shadow-sm sm:col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Location</span>
+                  <span className="text-sm font-semibold text-slate-800 flex items-start gap-1.5">
+                    <MapPin className="h-4 w-4 mt-0.5 text-blue-500 shrink-0" />
+                    {existingApplication.interviews[0].location}
+                  </span>
+                </div>
+              ) : null}
+
+              {existingApplication.interviews[0].instructions && (
+                <div className="bg-white rounded-lg p-3.5 border border-blue-100/50 shadow-sm sm:col-span-2">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Instructions</span>
+                  <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                    {existingApplication.interviews[0].instructions}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="border-b border-slate-200 bg-slate-50 px-6 flex gap-6">
           <button
             onClick={() => setActiveTab('eligibility')}
@@ -404,41 +459,94 @@ export const DriveDetails: React.FC = () => {
 
               {/* Action Button Section */}
               <div className="pt-2">
-                {existingApplication ? (
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <FileCheck className="h-5 w-5 text-blue-600" />
-                      <div>
-                        <span className="text-xs font-bold text-slate-900 block">
-                          You have already applied for this position.
-                        </span>
-                        <span className="text-[11px] text-slate-500">
-                          Current status: <Badge variant="secondary" className="text-[10px]">{existingApplication.status}</Badge>
-                        </span>
+                {drive?.status === 'COMPLETED' ? (
+                  existingApplication ? (
+                    <div className="p-4 rounded-xl border flex flex-col gap-3
+                      ${existingApplication.status === 'SELECTED' ? 'border-emerald-200 bg-emerald-50' :
+                        existingApplication.status === 'REJECTED' ? 'border-rose-200 bg-rose-50' :
+                        'border-blue-200 bg-blue-50'}">
+                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <span className="text-xs font-bold text-slate-800">Drive Completed</span>
+                      </div>
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="flex flex-col gap-1">
+                          {existingApplication.status === 'SELECTED' && (
+                            <>
+                              <span className="text-sm font-bold text-emerald-800">🎉 Selected</span>
+                              <span className="text-xs text-emerald-700">You were selected for this recruitment drive.</span>
+                            </>
+                          )}
+                          {existingApplication.status === 'REJECTED' && (
+                            <>
+                              <span className="text-sm font-bold text-rose-800">✕ Rejected</span>
+                              <span className="text-xs text-rose-700">Your application was not selected for this recruitment drive.</span>
+                            </>
+                          )}
+                          {existingApplication.status === 'SHORTLISTED' && (
+                            <>
+                              <span className="text-sm font-bold text-blue-800">⏳ Shortlisted</span>
+                              <span className="text-xs text-blue-700">You were shortlisted for this recruitment drive.<br/>The final result is not yet available.</span>
+                            </>
+                          )}
+                          {existingApplication.status === 'APPLIED' && (
+                            <>
+                              <span className="text-sm font-bold text-blue-800">⏳ Application Submitted</span>
+                              <span className="text-xs text-blue-700">The recruitment drive has ended.<br/>The final application status is not yet available.</span>
+                            </>
+                          )}
+                        </div>
+                        <Button variant="outline" size="sm" asChild className="text-xs shrink-0 bg-white">
+                          <Link to="/student/applications">View Application</Link>
+                        </Button>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm" asChild className="text-xs shrink-0">
-                      <Link to="/student/applications">View In My Applications</Link>
-                    </Button>
-                  </div>
+                  ) : (
+                    <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                        <span className="text-sm font-bold text-slate-800">Drive Completed</span>
+                      </div>
+                      <span className="text-xs text-slate-600">The recruitment event has already taken place.</span>
+                    </div>
+                  )
                 ) : (
-                  <Button
-                    onClick={handleApply}
-                    disabled={!isEligible || isApplying || isDeadlinePassed(drive?.deadline)}
-                    isLoading={isApplying}
-                    className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all ${
-                      isEligible && !isDeadlinePassed(drive?.deadline)
-                        ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer'
-                        : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-                    }`}
-                  >
-                    <Send className="h-4 w-4 mr-2" />
-                    {isDeadlinePassed(drive?.deadline)
-                      ? 'Applications Closed'
-                      : isEligible
-                      ? 'Apply Now'
-                      : 'Cannot Apply (Criteria Not Met)'}
-                  </Button>
+                  existingApplication ? (
+                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-5 w-5 text-blue-600" />
+                        <div>
+                          <span className="text-xs font-bold text-slate-900 block">
+                            You have already applied for this position.
+                          </span>
+                          <span className="text-[11px] text-slate-500">
+                            Current status: <Badge variant="secondary" className="text-[10px]">{existingApplication.status}</Badge>
+                          </span>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" asChild className="text-xs shrink-0 bg-white">
+                        <Link to="/student/applications">View Application</Link>
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleApply}
+                      disabled={!isEligible || isApplying || drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline)}
+                      isLoading={isApplying}
+                      className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all ${
+                        isEligible && drive?.status !== 'CANCELLED' && !isDeadlinePassed(drive?.deadline)
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer'
+                          : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                      }`}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline)
+                        ? 'Applications Closed'
+                        : isEligible
+                        ? 'Apply Now'
+                        : 'Cannot Apply (Criteria Not Met)'}
+                    </Button>
+                  )
                 )}
               </div>
             </div>

@@ -55,6 +55,16 @@ export const applicationService = {
     )
     return response.data
   },
+
+  async scheduleInterview(id: string, data: any): Promise<{ success: boolean; data: any }> {
+    const response = await api.post(`/tpo/applications/${id}/interview`, data)
+    return response.data
+  },
+
+  async updateInterview(id: string, interviewId: string, data: any): Promise<{ success: boolean; data: any }> {
+    const response = await api.patch(`/tpo/applications/${id}/interview/${interviewId}`, data)
+    return response.data
+  },
 }
 
 export default applicationService

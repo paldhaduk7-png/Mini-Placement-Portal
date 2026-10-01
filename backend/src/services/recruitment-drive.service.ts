@@ -342,7 +342,13 @@ export class RecruitmentDriveService {
       },
     });
 
-    return drives;
+    const now = new Date();
+    return drives.map(drive => {
+      if (drive.status !== DriveStatus.CANCELLED && drive.driveDate < now) {
+        return { ...drive, status: DriveStatus.COMPLETED };
+      }
+      return drive;
+    });
   }
 
   /**
@@ -366,6 +372,11 @@ export class RecruitmentDriveService {
         new Error(`Recruitment drive with ID '${id}' was not found.`),
         { statusCode: 404 }
       );
+    }
+
+    const now = new Date();
+    if (drive.status !== DriveStatus.CANCELLED && drive.driveDate < now) {
+      drive.status = DriveStatus.COMPLETED;
     }
 
     return drive;

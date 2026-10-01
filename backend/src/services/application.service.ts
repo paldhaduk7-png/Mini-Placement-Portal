@@ -1,4 +1,4 @@
-import { ApplicationStatus, Prisma } from '@prisma/client';
+import { ApplicationStatus, Prisma, DriveStatus } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { EligibilityService } from './eligibility.service';
 
@@ -55,6 +55,25 @@ export class ApplicationService {
     if (!drive) {
       const error: any = new Error(`Recruitment drive with ID '${driveId}' was not found.`);
       error.statusCode = 404;
+      throw error;
+    }
+
+    const now = new Date();
+    if (drive.status === DriveStatus.CANCELLED) {
+      const error: any = new Error('This recruitment drive has been cancelled.');
+      error.statusCode = 400;
+      throw error;
+    }
+    
+    if (drive.deadline < now) {
+      const error: any = new Error('The application deadline for this drive has passed.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (drive.status === DriveStatus.COMPLETED || drive.driveDate < now) {
+      const error: any = new Error('This recruitment drive has already been completed.');
+      error.statusCode = 400;
       throw error;
     }
 
@@ -150,6 +169,10 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        interviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        },
         drive: {
           select: {
             id: true,
@@ -212,6 +235,10 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        interviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        },
         drive: {
           select: {
             id: true,
@@ -352,6 +379,10 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        interviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        },
         student: {
           select: {
             id: true,
@@ -436,6 +467,7 @@ export class ApplicationService {
         currentPlacementMap.get(app.student.id) === app.id,
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
+      interviews: app.interviews,
       student: {
         id: app.student.id,
         fullName: app.student.fullName,
@@ -472,6 +504,7 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        interviews: { orderBy: { createdAt: 'desc' }, take: 1 },
         student: {
           select: {
             id: true,
@@ -549,6 +582,7 @@ export class ApplicationService {
       isCurrentPlacement,
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
+      interviews: app.interviews,
       student: {
         id: app.student.id,
         fullName: app.student.fullName,
@@ -684,6 +718,7 @@ export class ApplicationService {
       isCurrentPlacement: true,
       appliedAt: true,
       updatedAt: true,
+      interviews: { orderBy: { createdAt: Prisma.SortOrder.desc }, take: 1 },
       student: {
         select: {
           id: true,
@@ -737,6 +772,7 @@ export class ApplicationService {
       isCurrentPlacement: updated.isCurrentPlacement,
       appliedAt: updated.appliedAt,
       updatedAt: updated.updatedAt,
+      interviews: updated.interviews,
       student: {
         id: updated.student.id,
         fullName: updated.student.fullName,
@@ -746,6 +782,105 @@ export class ApplicationService {
       },
       drive: updated.drive,
     };
+  }
+
+  /**
+   * TPO: Schedule interview for a SHORTLISTED application
+   */
+  static async scheduleInterview(applicationId: string, data: any) {
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+    });
+
+    if (!application) {
+      const error: any = new Error(`Application with ID '${applicationId}' was not found.`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (application.status !== ApplicationStatus.SHORTLISTED) {
+      const error: any = new Error(`Can only schedule an interview for SHORTLISTED applications. Current status is ${application.status}.`);
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (!data.interviewDate || !data.interviewTime || !data.round || !data.mode) {
+      const error: any = new Error('Interview Date, Time, Round, and Mode are required.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (data.mode === 'ONLINE' && !data.meetingLink?.trim()) {
+      const error: any = new Error('Meeting Link is required for ONLINE interviews.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (data.mode === 'OFFLINE' && !data.location?.trim()) {
+      const error: any = new Error('Location is required for OFFLINE interviews.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const interview = await prisma.interview.create({
+      data: {
+        applicationId,
+        interviewDate: new Date(data.interviewDate),
+        interviewTime: data.interviewTime,
+        round: data.round,
+        mode: data.mode,
+        meetingLink: data.meetingLink || null,
+        location: data.location || null,
+        instructions: data.instructions || null,
+      },
+    });
+
+    return interview;
+  }
+
+  /**
+   * TPO: Edit/Update an interview
+   */
+  static async updateInterview(applicationId: string, interviewId: string, data: any) {
+    const interview = await prisma.interview.findFirst({
+      where: { id: interviewId, applicationId },
+    });
+
+    if (!interview) {
+      const error: any = new Error(`Interview with ID '${interviewId}' was not found for this application.`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (data.mode === 'ONLINE' && !data.meetingLink?.trim()) {
+      const error: any = new Error('Meeting Link is required for ONLINE interviews.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (data.mode === 'OFFLINE' && !data.location?.trim()) {
+      const error: any = new Error('Location is required for OFFLINE interviews.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const updateData: any = {};
+    if (data.interviewDate) updateData.interviewDate = new Date(data.interviewDate);
+    if (data.interviewTime) updateData.interviewTime = data.interviewTime;
+    if (data.round) updateData.round = data.round;
+    if (data.mode) updateData.mode = data.mode;
+    
+    // Explicit undefined checks so we can unset them
+    if (data.meetingLink !== undefined) updateData.meetingLink = data.meetingLink || null;
+    if (data.location !== undefined) updateData.location = data.location || null;
+    if (data.instructions !== undefined) updateData.instructions = data.instructions || null;
+
+    const updatedInterview = await prisma.interview.update({
+      where: { id: interviewId },
+      data: updateData,
+    });
+
+    return updatedInterview;
   }
 }
 

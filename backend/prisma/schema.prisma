@@ -185,4 +185,25 @@ model Application {
   @@unique([studentId, driveId])
   
   isCurrentPlacement Boolean @default(false)
+  interviews         Interview[]
+}
+
+// ==========================================
+// INTERVIEW SCHEDULE
+// ==========================================
+
+model Interview {
+  id              String      @id @default(uuid())
+  applicationId   String
+  interviewDate   DateTime
+  interviewTime   String
+  round           String
+  mode            String      // e.g., "ONLINE" or "OFFLINE"
+  meetingLink     String?
+  location        String?
+  instructions    String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 }

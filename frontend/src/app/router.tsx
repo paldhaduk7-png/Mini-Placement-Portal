@@ -27,6 +27,7 @@ import { TPODashboard } from '@/pages/tpo/TPODashboard';
 import { Students as TPOStudents } from '@/pages/tpo/Students';
 import { StudentDetails as TPOStudentDetails } from '@/pages/tpo/StudentDetails';
 import { Companies as TPOCompanies } from '@/pages/tpo/Companies';
+import { CompanyDetails as TPOCompanyDetails } from '@/pages/tpo/CompanyDetails';
 import { CreateCompany as TPOCreateCompany } from '@/pages/tpo/CreateCompany';
 import { EditCompany as TPOEditCompany } from '@/pages/tpo/EditCompany';
 import { Drives as TPODrives } from '@/pages/tpo/Drives';
@@ -157,6 +158,10 @@ export const router = createBrowserRouter([
       {
         path: 'companies/create',
         element: <TPOCreateCompany />,
+      },
+      {
+        path: 'companies/:id',
+        element: <TPOCompanyDetails />,
       },
       {
         path: 'companies/:id/edit',

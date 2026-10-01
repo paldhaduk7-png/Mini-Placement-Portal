@@ -137,17 +137,49 @@ export const Applications: React.FC = () => {
                           {formatDate(app.appliedAt)}
                         </TableCell>
                         <TableCell>
-                          {getStatusBadge(app.status)}
-                          {isCurrent && (
-                            <div className="mt-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded inline-block">
-                              CURRENT PLACEMENT
+                          <div className="flex flex-col gap-2 items-start">
+                            <div className="flex flex-col items-start gap-1">
+                              {getStatusBadge(app.status)}
+                              {isCurrent && (
+                                <div className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                                  CURRENT PLACEMENT
+                                </div>
+                              )}
+                              {isReplaced && (
+                                <div className="text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                  REPLACED
+                                </div>
+                              )}
                             </div>
-                          )}
-                          {isReplaced && (
-                            <div className="mt-1.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block border border-slate-200">
-                              REPLACED
-                            </div>
-                          )}
+
+                            {app.interviews && app.interviews.length > 0 && (
+                              <div className="mt-2 bg-blue-50/50 border border-blue-100 rounded-md p-2 w-full min-w-[200px]">
+                                <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wider block mb-1">
+                                  Interview Scheduled
+                                </span>
+                                <div className="text-xs font-semibold text-slate-800">
+                                  {new Date(app.interviews[0].interviewDate).toLocaleDateString('en-GB', {
+                                    day: '2-digit', month: 'short', year: 'numeric'
+                                  })} • {app.interviews[0].interviewTime}
+                                </div>
+                                <div className="text-xs text-slate-600 mt-0.5">
+                                  {app.interviews[0].round} ({app.interviews[0].mode})
+                                </div>
+                                <Button 
+                                  variant="link" 
+                                  className="h-auto p-0 mt-1.5 text-[11px] text-blue-600"
+                                  onClick={() => {
+                                    // Could open a modal, or we just rely on Drive Info button
+                                  }}
+                                  asChild
+                                >
+                                  <Link to={`/student/drives/${drive?.id}`}>
+                                    View Interview Details
+                                  </Link>
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         </TableCell>
                       <TableCell className="text-right">
                         {drive?.id && (

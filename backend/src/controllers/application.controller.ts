@@ -248,4 +248,77 @@ export class ApplicationController {
       });
     }
   }
+
+  /**
+   * POST /api/tpo/applications/:id/interview
+   * Schedules an interview for a SHORTLISTED application (TPO only)
+   */
+  static async scheduleInterview(req: Request, res: Response): Promise<void> {
+    try {
+      const applicationId = req.params.id;
+      const interviewData = req.body;
+
+      if (!applicationId?.trim()) {
+        res.status(400).json({
+          success: false,
+          message: 'Application ID is required.',
+        });
+        return;
+      }
+
+      const scheduled = await ApplicationService.scheduleInterview(
+        applicationId.trim(),
+        interviewData
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Interview scheduled successfully',
+        data: scheduled,
+      });
+    } catch (error: any) {
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'An unexpected error occurred while scheduling interview.',
+      });
+    }
+  }
+
+  /**
+   * PATCH /api/tpo/applications/:id/interview/:interviewId
+   * Updates an existing interview (TPO only)
+   */
+  static async updateInterview(req: Request, res: Response): Promise<void> {
+    try {
+      const { id: applicationId, interviewId } = req.params;
+      const interviewData = req.body;
+
+      if (!applicationId?.trim() || !interviewId?.trim()) {
+        res.status(400).json({
+          success: false,
+          message: 'Application ID and Interview ID are required.',
+        });
+        return;
+      }
+
+      const updated = await ApplicationService.updateInterview(
+        applicationId.trim(),
+        interviewId.trim(),
+        interviewData
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Interview updated successfully',
+        data: updated,
+      });
+    } catch (error: any) {
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'An unexpected error occurred while updating interview.',
+      });
+    }
+  }
 }

@@ -201,7 +201,7 @@ export const Companies: React.FC = () => {
                         asChild
                         className="h-8 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-200"
                       >
-                        <Link to="/tpo/drives">View Drives</Link>
+                        <Link to={`/tpo/companies/${comp.id}`}>Company Details</Link>
                       </Button>
                       <Button
                         variant="ghost"

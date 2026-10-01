@@ -172,6 +172,33 @@ export const StudentDashboard: React.FC = () => {
         </div>
       )}
 
+      {/* Notice for Scheduled Interview */}
+      {(() => {
+        const interviewApp = applications.find(app => app.interviews && app.interviews.length > 0 && app.status === 'SHORTLISTED');
+        if (interviewApp && interviewApp.interviews) {
+          const intv = interviewApp.interviews[0];
+          return (
+            <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-bottom-2">
+              <div className="flex items-start gap-3">
+                <Calendar className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-900">
+                    Interview Scheduled: {interviewApp.drive?.company?.name || 'Company'}
+                  </h4>
+                  <p className="text-xs text-blue-800 mt-0.5 font-medium">
+                    {new Date(intv.interviewDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} at {intv.interviewTime} — {intv.round} ({intv.mode})
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" asChild className="bg-blue-600 hover:bg-blue-700 text-white shrink-0 text-xs shadow-sm">
+                <Link to={`/student/drives/${interviewApp.driveId}`}>View Details</Link>
+              </Button>
+            </div>
+          );
+        }
+        return null;
+      })()}
+
       {/* Top Stat Cards matching Step 4 Reference Image */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Card 1: Profile Status */}

@@ -69,6 +69,22 @@ tpoApplicationRouter.patch(
   ApplicationController.updateApplicationStatus
 );
 
+// POST /api/tpo/applications/:id/interview
+tpoApplicationRouter.post(
+  '/:id/interview',
+  authenticateToken,
+  requireRole(Role.TPO),
+  ApplicationController.scheduleInterview
+);
+
+// PATCH /api/tpo/applications/:id/interview/:interviewId
+tpoApplicationRouter.patch(
+  '/:id/interview/:interviewId',
+  authenticateToken,
+  requireRole(Role.TPO),
+  ApplicationController.updateInterview
+);
+
 export default {
   studentDriveApplicationRouter,
   studentApplicationRouter,

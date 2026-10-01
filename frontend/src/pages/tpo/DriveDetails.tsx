@@ -28,7 +28,8 @@ import {
   FileText,
 } from 'lucide-react';
 import type { RecruitmentDrive } from '@/types/drive';
-import type { Application, ApplicationStatus } from '@/types/application';
+import type { Application, ApplicationStatus, Interview } from '@/types/application';
+import { ScheduleInterviewModal } from '@/components/tpo/ScheduleInterviewModal';
 
 export const DriveDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -40,6 +41,7 @@ export const DriveDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'eligible' | 'applications'>('eligible');
   const [isUpdatingApp, setIsUpdatingApp] = useState(false);
+  const [scheduleApp, setScheduleApp] = useState<{ application: Application; existingInterview?: Interview } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -95,6 +97,22 @@ export const DriveDetails: React.FC = () => {
     }
   };
 
+  const handleSaveInterview = async (applicationId: string, data: any) => {
+    try {
+      if (scheduleApp?.existingInterview) {
+        await applicationService.updateInterview(applicationId, scheduleApp.existingInterview.id, data);
+        toast.success('Interview updated successfully');
+      } else {
+        await applicationService.scheduleInterview(applicationId, data);
+        toast.success('Interview scheduled successfully');
+      }
+      if (id) loadDriveData(id); // Reload
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to schedule/update interview.');
+      throw err;
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -146,6 +164,14 @@ export const DriveDetails: React.FC = () => {
               <div className="flex flex-wrap items-center gap-4 mt-1 text-xs text-slate-300">
                 <span className="text-emerald-400 font-bold">
                   {formatCurrencyLPA(drive?.ctc || 0)}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Deadline: {drive?.deadline ? formatDate(drive.deadline) : 'N/A'}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Drive Date: {drive?.driveDate ? formatDate(drive.driveDate) : 'N/A'}
                 </span>
                 <span className="flex items-center gap-1">
                   <MapPin className="h-3.5 w-3.5 text-slate-400" />
@@ -289,6 +315,7 @@ export const DriveDetails: React.FC = () => {
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Applied Date</TableHead>
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Resume</TableHead>
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Status</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase text-slate-500">Interview</TableHead>
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Update Status</TableHead>
                         <TableHead className="text-right text-xs font-semibold uppercase text-slate-500">Profile</TableHead>
                       </TableRow>
@@ -300,9 +327,14 @@ export const DriveDetails: React.FC = () => {
                             {index + 1}
                           </TableCell>
                           <TableCell>
-                            <span className="font-semibold text-slate-900 text-sm">
-                              {app.student?.fullName || 'Student'}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-slate-900 text-sm">
+                                {app.student?.fullName || 'Student'}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {app.student?.user?.email || 'N/A'}
+                              </span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-xs text-slate-600">
                             {formatDate(app.appliedAt)}
@@ -341,14 +373,65 @@ export const DriveDetails: React.FC = () => {
                               {app.status}
                             </Badge>
                             {app.status === 'SELECTED' && app.isCurrentPlacement && (
-                              <div className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded block w-max">
-                                CURRENT PLACEMENT
+                              <div className="mt-1 flex flex-col gap-0.5">
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded w-max">
+                                  CURRENT PLACEMENT
+                                </span>
+                                {drive?.ctc && (
+                                  <span className="text-[10px] font-semibold text-slate-500">
+                                    {formatCurrencyLPA(drive.ctc)}
+                                  </span>
+                                )}
                               </div>
                             )}
                             {app.status === 'SELECTED' && app.isCurrentPlacement === false && (
-                              <div className="mt-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded block w-max">
-                                REPLACED
+                              <div className="mt-1 flex flex-col gap-0.5">
+                                <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded w-max">
+                                  REPLACED
+                                </span>
+                                {drive?.ctc && (
+                                  <span className="text-[10px] font-semibold text-slate-400">
+                                    {formatCurrencyLPA(drive.ctc)}
+                                  </span>
+                                )}
                               </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {app.interviews && app.interviews.length > 0 ? (
+                              <div className="flex flex-col gap-1 items-start">
+                                <span className="text-xs font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+                                  Interview Scheduled
+                                </span>
+                                <span className="text-[10px] font-medium text-slate-500">
+                                  {new Date(app.interviews[0].interviewDate).toLocaleDateString('en-GB', {
+                                    day: '2-digit', month: 'short', year: 'numeric'
+                                  })} • {app.interviews[0].interviewTime}
+                                </span>
+                                <span className="text-[10px] text-slate-400">
+                                  {app.interviews[0].round} ({app.interviews[0].mode})
+                                </span>
+                                <div className="flex gap-2 mt-1">
+                                  <Button 
+                                    variant="link" 
+                                    className="h-auto p-0 text-[10px] text-blue-600"
+                                    onClick={() => setScheduleApp({ application: app, existingInterview: app.interviews![0] })}
+                                  >
+                                    Edit Interview
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : app.status === 'SHORTLISTED' ? (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="h-7 text-[10px] font-semibold text-blue-600 border-blue-200 hover:bg-blue-50"
+                                onClick={() => setScheduleApp({ application: app })}
+                              >
+                                Schedule Interview
+                              </Button>
+                            ) : (
+                              <span className="text-xs text-slate-400">-</span>
                             )}
                           </TableCell>
                           <TableCell>
@@ -383,6 +466,15 @@ export const DriveDetails: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {scheduleApp && (
+        <ScheduleInterviewModal
+          application={scheduleApp.application}
+          existingInterview={scheduleApp.existingInterview}
+          onClose={() => setScheduleApp(null)}
+          onSave={handleSaveInterview}
+        />
+      )}
     </div>
   );
 };

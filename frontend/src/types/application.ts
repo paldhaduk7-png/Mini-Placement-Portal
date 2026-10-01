@@ -20,6 +20,21 @@ export interface Application {
 
   student?: Student
   drive?: RecruitmentDrive
+  interviews?: Interview[]
+}
+
+export interface Interview {
+  id: string
+  applicationId: string
+  interviewDate: string
+  interviewTime: string
+  round: string
+  mode: 'ONLINE' | 'OFFLINE'
+  meetingLink?: string | null
+  location?: string | null
+  instructions?: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PlacementStatus {

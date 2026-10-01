@@ -31,6 +31,7 @@ export const DriveTable: React.FC<DriveTableProps> = ({ drives }) => {
             <TableHead className="text-xs font-semibold uppercase text-slate-500">CTC</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Location</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Deadline</TableHead>
+            <TableHead className="text-xs font-semibold uppercase text-slate-500">Drive Date</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Status</TableHead>
             <TableHead className="text-right text-xs font-semibold uppercase text-slate-500">Actions</TableHead>
           </TableRow>
@@ -79,6 +80,12 @@ export const DriveTable: React.FC<DriveTableProps> = ({ drives }) => {
                     <span>{formatDate(drive.deadline)}</span>
                   </div>
                 </TableCell>
+                <TableCell className="text-sm text-slate-600">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span>{formatDate(drive.driveDate)}</span>
+                  </div>
+                </TableCell>
                 <TableCell>
                   <Badge variant={isClosed ? 'destructive' : 'success'}>
                     {drive.status}
@@ -89,7 +96,7 @@ export const DriveTable: React.FC<DriveTableProps> = ({ drives }) => {
                     <Button variant="outline" size="sm" asChild className="h-8 text-xs font-medium text-blue-700 hover:text-blue-800 hover:bg-blue-50 border-blue-200">
                       <Link to={`/tpo/drives/${drive.id}`}>
                         <Users className="h-3.5 w-3.5 mr-1 text-blue-600" />
-                        Eligible Students
+                        {drive.status === 'COMPLETED' ? 'View Students' : 'Eligible Students'}
                       </Link>
                     </Button>
                     <Button variant="ghost" size="sm" asChild className="h-8 w-8 p-0 text-slate-500 hover:text-blue-600 bg-transparent hover:bg-blue-50">

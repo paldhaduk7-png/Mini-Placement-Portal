@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Building2, MapPin, Calendar, ArrowRight } from 'lucide-react'
+import { Building2, MapPin, Calendar, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { RecruitmentDrive } from '../../types/drive'
 import { Card, CardContent } from '../ui/card'
 import { Button } from '../ui/button'
@@ -62,6 +62,17 @@ export function DriveCard({ drive }: { drive: RecruitmentDrive }) {
               </span>
               <span className="font-medium text-slate-700">{formatDate(drive.deadline)}</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-400 flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> Drive Date:
+              </span>
+              <span className="font-medium text-slate-700">{formatDate(drive.driveDate)}</span>
+            </div>
+            {drive.status === 'COMPLETED' && (
+              <div className="flex items-center justify-center gap-1.5 mt-2 pt-2 border-t border-slate-200 text-emerald-600 font-bold">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Drive Completed
+              </div>
+            )}
           </div>
         </div>
 
