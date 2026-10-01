@@ -34,8 +34,10 @@ export const EditDrive: React.FC = () => {
   const [maxActiveBacklogs, setMaxActiveBacklogs] = useState<number | ''>(0);
   const [isD2dAllowed, setIsD2dAllowed] = useState<'Yes' | 'No'>('Yes');
   const [allowedDepartments, setAllowedDepartments] = useState<string[]>([]);
+  const [branchError, setBranchError] = useState(false);
   
   const handleDeptToggle = (dept: string) => {
+    setBranchError(false);
     setAllowedDepartments((prev) =>
       prev.includes(dept) ? prev.filter((d) => d !== dept) : [...prev, dept]
     );
@@ -45,6 +47,7 @@ export const EditDrive: React.FC = () => {
     DEPARTMENTS.length > 0 && DEPARTMENTS.every((dept) => allowedDepartments.includes(dept));
 
   const handleSelectAllBranches = () => {
+    setBranchError(false);
     if (isAllBranchesSelected) {
       setAllowedDepartments([]);
     } else {
@@ -123,6 +126,11 @@ export const EditDrive: React.FC = () => {
     }
     if (!deadline) {
       toast.error('Application deadline is required.');
+      return;
+    }
+    if (allowedDepartments.length === 0) {
+      setBranchError(true);
+      toast.error('Please select at least one branch.');
       return;
     }
 
@@ -344,8 +352,8 @@ export const EditDrive: React.FC = () => {
               
               <div className="mt-4">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-medium text-slate-600">
-                    Allowed Branches <span className="text-slate-400 font-normal">(Leave empty to allow all)</span>
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Allowed Branches <span className="text-red-500">*</span>
                   </label>
                   <button
                     type="button"
@@ -381,6 +389,12 @@ export const EditDrive: React.FC = () => {
                     </label>
                   ))}
                 </div>
+
+                {branchError && (
+                  <p className="text-[11px] text-red-500 mt-2 font-medium">
+                    Please select at least one branch for this recruitment drive.
+                  </p>
+                )}
               </div>
             </div>
 
