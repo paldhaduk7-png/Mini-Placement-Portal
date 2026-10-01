@@ -21,6 +21,7 @@ import {
   Search,
   Trash2,
   Pencil,
+  History,
 } from 'lucide-react';
 import type { Company } from '@/types/company';
 
@@ -178,20 +179,27 @@ export const Companies: React.FC = () => {
                     {index + 1}
                   </TableCell>
                   <TableCell>
-                    <span className="font-semibold text-slate-900 text-sm">{comp.name}</span>
+                    <Link
+                      to={`/tpo/companies/${comp.id}`}
+                      className="font-semibold text-slate-900 text-sm hover:text-blue-600 hover:underline transition-colors"
+                    >
+                      {comp.name}
+                    </Link>
                   </TableCell>
                   <TableCell>
-                    {comp.imageUrl ? (
-                      <img
-                        src={comp.imageUrl}
-                        alt={comp.name}
-                        className="h-10 w-24 object-contain rounded border border-slate-100 p-1 bg-white"
-                      />
-                    ) : (
-                      <div className="flex h-10 w-12 items-center justify-center rounded bg-slate-100 text-slate-500">
-                        <Building2 className="h-5 w-5" />
-                      </div>
-                    )}
+                    <Link to={`/tpo/companies/${comp.id}`} className="inline-block">
+                      {comp.imageUrl ? (
+                        <img
+                          src={comp.imageUrl}
+                          alt={comp.name}
+                          className="h-10 w-24 object-contain rounded border border-slate-100 p-1 bg-white hover:border-blue-200 transition-colors"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-12 items-center justify-center rounded bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                      )}
+                    </Link>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
@@ -202,6 +210,17 @@ export const Companies: React.FC = () => {
                         className="h-8 text-xs font-semibold text-blue-600 hover:text-blue-800 hover:bg-blue-50 border-blue-200"
                       >
                         <Link to={`/tpo/companies/${comp.id}`}>Company Details</Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="h-8 text-xs font-semibold text-slate-700 hover:text-blue-700 hover:bg-slate-50 border-slate-200"
+                      >
+                        <Link to={`/tpo/companies/${comp.id}?tab=history`}>
+                          <History className="h-3.5 w-3.5 mr-1 text-slate-500" />
+                          History
+                        </Link>
                       </Button>
                       <Button
                         variant="ghost"

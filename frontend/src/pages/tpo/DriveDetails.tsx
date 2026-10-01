@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import driveService from '@/services/drive.service';
 import applicationService from '@/services/application.service';
 import { Card, CardContent } from '@/components/ui/card';
@@ -34,12 +34,16 @@ import { ScheduleInterviewModal } from '@/components/tpo/ScheduleInterviewModal'
 export const DriveDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   const [drive, setDrive] = useState<RecruitmentDrive | null>(null);
   const [eligibleStudents, setEligibleStudents] = useState<any[]>([]);
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'eligible' | 'applications'>('eligible');
+  const requestedTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'eligible' | 'applications'>(
+    requestedTab === 'applications' ? 'applications' : 'eligible'
+  );
   const [isUpdatingApp, setIsUpdatingApp] = useState(false);
   const [scheduleApp, setScheduleApp] = useState<{ application: Application; existingInterview?: Interview } | null>(null);
 
@@ -60,7 +64,11 @@ export const DriveDetails: React.FC = () => {
 
       if (driveRes.status === 'fulfilled') {
         const raw = driveRes.value as any;
-        setDrive(raw?.data || raw);
+        const driveData = raw?.data || raw;
+        setDrive(driveData);
+        if (driveData?.status === 'COMPLETED' && !requestedTab) {
+          setActiveTab('applications');
+        }
       }
 
       if (eligibleRes.status === 'fulfilled') {
