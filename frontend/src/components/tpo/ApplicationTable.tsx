@@ -121,6 +121,16 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                   <Badge variant={getStatusBadgeVariant(app.status)}>
                     {app.status}
                   </Badge>
+                  {app.status === 'SELECTED' && app.isCurrentPlacement && (
+                    <div className="mt-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded block w-max">
+                      CURRENT PLACEMENT
+                    </div>
+                  )}
+                  {app.status === 'SELECTED' && app.isCurrentPlacement === false && (
+                    <div className="mt-1 text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded block w-max">
+                      SUPERSEDED
+                    </div>
+                  )}
                 </TableCell>
                 <TableCell>
                   {onStatusChange ? (

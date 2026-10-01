@@ -27,6 +27,7 @@ export const StudentDetails: React.FC = () => {
   const navigate = useNavigate();
 
   const [student, setStudent] = useState<Student | null>(null);
+  const [applications, setApplications] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
@@ -39,9 +40,14 @@ export const StudentDetails: React.FC = () => {
   const loadStudent = async (studentId: string) => {
     setIsLoading(true);
     try {
-      const res = await studentService.getStudentById(studentId);
-      const data = (res as any)?.data || res;
+      const [studentRes, appsRes] = await Promise.all([
+        studentService.getStudentById(studentId),
+        import('@/services/application.service').then(m => m.default.getTpoApplications({ studentId }))
+      ]);
+      const data = (studentRes as any)?.data || studentRes;
       setStudent(data);
+      const appsList = (appsRes as any)?.data || appsRes || [];
+      setApplications(appsList);
     } catch (err: any) {
       toast.error(err.message || 'Failed to load student details.');
     } finally {
@@ -277,6 +283,46 @@ export const StudentDetails: React.FC = () => {
             </div>
 
           </div>
+
+          {/* Placement Information */}
+          {(applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement) || applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement === false)) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement) && (
+                <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50">
+                  <h3 className="text-xs font-bold text-emerald-800 uppercase mb-3 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                    Current Placement
+                  </h3>
+                  {applications.filter(a => a.status === 'SELECTED' && a.isCurrentPlacement).map(app => (
+                    <div key={app.id} className="space-y-1">
+                      <div className="font-bold text-slate-900">{app.drive?.company?.name || 'Company'}</div>
+                      <div className="text-sm font-semibold text-emerald-700">₹{app.drive?.ctc || 0} LPA</div>
+                      <Badge variant="success" className="mt-1">SELECTED</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement === false) && (
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                  <h3 className="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
+                    <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                    Previous Placements
+                  </h3>
+                  <div className="space-y-4">
+                    {applications.filter(a => a.status === 'SELECTED' && a.isCurrentPlacement === false).map(app => (
+                      <div key={app.id} className="space-y-1 pb-3 border-b border-slate-200 last:border-0 last:pb-0">
+                        <div className="font-bold text-slate-700">{app.drive?.company?.name || 'Company'}</div>
+                        <div className="text-sm font-semibold text-slate-600">₹{app.drive?.ctc || 0} LPA</div>
+                        <div className="mt-1">
+                          <span className="text-[10px] font-medium text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded block w-max">SUPERSEDED</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 10th Marks Detail Grid */}
           <div className="p-4 rounded-xl border border-slate-200">

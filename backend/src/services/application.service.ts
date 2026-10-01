@@ -514,53 +514,64 @@ export class ApplicationService {
           : existing.remarks,
     };
 
-    if (normalizedStatus === ApplicationStatus.SELECTED && existing.status !== ApplicationStatus.SELECTED) {
-      // Unmark any existing current placement
-      await prisma.application.updateMany({
-        where: { studentId: existing.studentId, isCurrentPlacement: true },
-        data: { isCurrentPlacement: false },
-      });
-      dataToUpdate.isCurrentPlacement = true;
-    } else if (normalizedStatus !== ApplicationStatus.SELECTED && existing.status === ApplicationStatus.SELECTED) {
-      // If un-selecting an application that was the current placement
-      // To strictly satisfy TS we check if (existing as any).isCurrentPlacement
-      if ((existing as any).isCurrentPlacement) {
-        dataToUpdate.isCurrentPlacement = false;
-      }
-    }
-
-    const updated = await prisma.application.update({
-      where: { id: applicationId },
-      data: dataToUpdate,
-      select: {
-        id: true,
-        status: true,
-        remarks: true,
-        isCurrentPlacement: true,
-        appliedAt: true,
-        updatedAt: true,
-        student: {
-          select: {
-            id: true,
-            fullName: true,
-            user: {
-              select: { email: true },
-            },
-            phone: true,
-            department: true,
+    const selectObject = {
+      id: true,
+      status: true,
+      remarks: true,
+      isCurrentPlacement: true,
+      appliedAt: true,
+      updatedAt: true,
+      student: {
+        select: {
+          id: true,
+          fullName: true,
+          user: {
+            select: { email: true },
           },
+          phone: true,
+          department: true,
         },
-        drive: {
-          select: {
-            id: true,
-            role: true,
-            company: {
-              select: { id: true, name: true, imageUrl: true },
-            },
+      },
+      drive: {
+        select: {
+          id: true,
+          role: true,
+          company: {
+            select: { id: true, name: true, imageUrl: true },
           },
         },
       },
-    });
+    };
+
+    let updated;
+
+    if (normalizedStatus === ApplicationStatus.SELECTED && existing.status !== ApplicationStatus.SELECTED) {
+      dataToUpdate.isCurrentPlacement = true;
+      const transactionOps = [
+        prisma.application.updateMany({
+          where: { studentId: existing.studentId, isCurrentPlacement: true },
+          data: { isCurrentPlacement: false },
+        }),
+        prisma.application.update({
+          where: { id: applicationId },
+          data: dataToUpdate,
+          select: selectObject,
+        }),
+      ];
+      const results = await prisma.$transaction(transactionOps);
+      updated = results[1];
+    } else {
+      if (normalizedStatus !== ApplicationStatus.SELECTED && existing.status === ApplicationStatus.SELECTED) {
+        if ((existing as any).isCurrentPlacement) {
+          dataToUpdate.isCurrentPlacement = false;
+        }
+      }
+      updated = await prisma.application.update({
+        where: { id: applicationId },
+        data: dataToUpdate,
+        select: selectObject,
+      });
+    }
 
     return {
       id: updated.id,
