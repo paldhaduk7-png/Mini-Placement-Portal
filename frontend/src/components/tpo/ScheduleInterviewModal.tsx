@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Application, Interview } from '@/types/application';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin, Video, Info } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Video,
+  Info,
+  X,
+  CalendarPlus,
+  CalendarCheck
+} from 'lucide-react';
 
 interface ScheduleInterviewModalProps {
   application: Application;
@@ -71,29 +80,50 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200 border border-slate-100 max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
-              {existingInterview ? 'Edit Interview' : 'Schedule Interview'}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1 font-medium">
-              For {application.student?.fullName} ({application.drive?.company?.name})
-            </p>
+      <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-200 border border-slate-100 max-h-[92vh] overflow-y-auto">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-4 pb-4 border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100 shadow-2xs shrink-0">
+              {existingInterview ? (
+                <CalendarCheck className="h-5 w-5 text-blue-600" />
+              ) : (
+                <CalendarPlus className="h-5 w-5 text-blue-600" />
+              )}
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-900 tracking-tight">
+                {existingInterview ? 'Edit Interview' : 'Schedule Interview'}
+              </h3>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5 text-xs text-slate-600">
+                <span className="font-semibold text-slate-800">{application.student?.fullName || 'Student'}</span>
+                <span className="text-slate-300">•</span>
+                <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[11px]">
+                  {application.drive?.company?.name || 'Company'}
+                </span>
+                {application.drive?.role && (
+                  <span className="text-[11px] text-slate-400">({application.drive.role})</span>
+                )}
+              </div>
+            </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full p-1.5 transition-colors"
+            className="text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full p-2 transition-colors cursor-pointer"
           >
-            &times;
+            <X className="h-4 w-4" />
           </button>
         </div>
 
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          {/* Date & Time Grid */}
+          <div className="grid grid-cols-2 gap-3.5">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5" /> Date *
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5 text-blue-600" />
+                Date <span className="text-rose-500">*</span>
               </label>
               <input
                 type="date"
@@ -101,121 +131,156 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                 value={date}
                 min={existingInterview ? undefined : new Date().toISOString().split('T')[0]}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" /> Time *
+              <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5 text-blue-600" />
+                Time <span className="text-rose-500">*</span>
               </label>
               <input
                 type="time"
                 required
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
-                className="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                className="w-full px-3 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
               />
             </div>
           </div>
 
+          {/* Interview Round */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Interview Round *</label>
+            <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+              <span>Interview Round <span className="text-rose-500">*</span></span>
+              <span className="text-[10px] text-slate-400 font-normal">e.g. Technical Round 1</span>
+            </label>
             <input
               type="text"
               required
               value={round}
               onChange={(e) => setRound(e.target.value)}
-              placeholder="e.g. Technical Round 1, HR Round"
-              className="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g. Technical Round 1, System Design, HR"
+              className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
             />
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700">Mode *</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="ONLINE"
-                  checked={mode === 'ONLINE'}
-                  onChange={() => setMode('ONLINE')}
-                  className="text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-slate-700">Online</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  value="OFFLINE"
-                  checked={mode === 'OFFLINE'}
-                  onChange={() => setMode('OFFLINE')}
-                  className="text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-slate-700">Offline</span>
-              </label>
+          {/* Mode Selector Segmented Tabs */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider text-[11px]">
+              Interview Mode <span className="text-rose-500">*</span>
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setMode('ONLINE')}
+                className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  mode === 'ONLINE'
+                    ? 'bg-blue-50/80 border-blue-300 text-blue-700 shadow-xs ring-2 ring-blue-500/10'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                <Video className={`h-4 w-4 ${mode === 'ONLINE' ? 'text-blue-600' : 'text-slate-400'}`} />
+                Online Meeting
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('OFFLINE')}
+                className={`flex items-center justify-center gap-2 px-3.5 py-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  mode === 'OFFLINE'
+                    ? 'bg-blue-50/80 border-blue-300 text-blue-700 shadow-xs ring-2 ring-blue-500/10'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300'
+                }`}
+              >
+                <MapPin className={`h-4 w-4 ${mode === 'OFFLINE' ? 'text-blue-600' : 'text-slate-400'}`} />
+                Offline / On-Campus
+              </button>
             </div>
           </div>
 
+          {/* Conditional: Meeting Link or Location */}
           {mode === 'ONLINE' ? (
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <Video className="h-3.5 w-3.5" /> Meeting Link *
+            <div className="space-y-1.5 animate-in fade-in duration-150">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Video className="h-3.5 w-3.5 text-blue-600" />
+                  Meeting Link <span className="text-rose-500">*</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-normal">Google Meet, Zoom, Teams</span>
               </label>
               <input
                 type="url"
                 required
                 value={meetingLink}
                 onChange={(e) => setMeetingLink(e.target.value)}
-                placeholder="https://meet.google.com/..."
-                className="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
               />
             </div>
           ) : (
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5" /> Location *
+            <div className="space-y-1.5 animate-in fade-in duration-150">
+              <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                  Interview Location <span className="text-rose-500">*</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-normal">Room, block, or address</span>
               </label>
               <input
                 type="text"
                 required
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                placeholder="Office Address / Cabin Room"
-                className="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="e.g. Placement Cell - Interview Room 2, Block A"
+                className="w-full px-3.5 py-2 text-sm bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs"
               />
             </div>
           )}
 
+          {/* Instructions */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5" /> Additional Instructions (Optional)
+            <label className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Info className="h-3.5 w-3.5 text-slate-500" />
+              Additional Instructions <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
             </label>
             <textarea
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
               rows={3}
-              placeholder="Any specific documents to bring or prerequisites..."
-              className="w-full text-sm border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 resize-none"
+              placeholder="Provide candidate instructions, prerequisites, documents to bring, or interview panel details..."
+              className="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xs resize-none"
             />
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
+          {/* Modal Actions */}
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={onClose}
               disabled={isSubmitting}
+              className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-blue-600 text-white"
+              className="px-5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer active:scale-98"
             >
-              {isSubmitting ? 'Saving...' : existingInterview ? 'Update Interview' : 'Schedule Interview'}
+              {isSubmitting ? (
+                <>Saving...</>
+              ) : existingInterview ? (
+                <>
+                  <CalendarCheck className="h-3.5 w-3.5" />
+                  Update Interview
+                </>
+              ) : (
+                <>
+                  <CalendarPlus className="h-3.5 w-3.5" />
+                  Schedule Interview
+                </>
+              )}
             </Button>
           </div>
         </form>
