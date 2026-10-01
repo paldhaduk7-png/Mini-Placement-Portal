@@ -394,6 +394,7 @@ export class ApplicationService {
         id: true,
         status: true,
         remarks: true,
+        isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
         student: {
