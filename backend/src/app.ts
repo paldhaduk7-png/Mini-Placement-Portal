@@ -75,6 +75,8 @@ app.use('/api/student/applications', studentApplicationRouter);
 app.use('/student/applications', studentApplicationRouter);
 app.use('/api/tpo/applications', tpoApplicationRouter);
 app.use('/tpo/applications', tpoApplicationRouter);
+app.use('/api/applications', tpoApplicationRouter);
+app.use('/applications', tpoApplicationRouter);
 
 // Recruitment Drive Routes
 app.use('/api/tpo/drives', recruitmentDriveRoutes);
