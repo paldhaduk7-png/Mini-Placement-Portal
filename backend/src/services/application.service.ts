@@ -277,6 +277,9 @@ export class ApplicationService {
             studentType: true,
             currentCgpa: true,
             verificationStatus: true,
+            resumeUrl: true,
+            resumeFileName: true,
+            resumeUploadedAt: true,
           },
         },
         drive: {
@@ -313,6 +316,9 @@ export class ApplicationService {
         studentType: app.student.studentType,
         currentCgpa: app.student.currentCgpa,
         verificationStatus: app.student.verificationStatus,
+        resumeUrl: app.student.resumeUrl,
+        resumeFileName: app.student.resumeFileName,
+        resumeUploadedAt: app.student.resumeUploadedAt,
       },
       drive: {
         id: app.drive.id,
@@ -352,6 +358,9 @@ export class ApplicationService {
             d2dCgpa: true,
             activeBacklogs: true,
             verificationStatus: true,
+            resumeUrl: true,
+            resumeFileName: true,
+            resumeUploadedAt: true,
           },
         },
         drive: {
@@ -398,6 +407,9 @@ export class ApplicationService {
         d2dCgpa: app.student.d2dCgpa,
         activeBacklogs: app.student.activeBacklogs,
         verificationStatus: app.student.verificationStatus,
+        resumeUrl: app.student.resumeUrl,
+        resumeFileName: app.student.resumeFileName,
+        resumeUploadedAt: app.student.resumeUploadedAt,
       },
       drive: app.drive,
     };

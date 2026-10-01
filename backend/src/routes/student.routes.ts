@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Role } from '@prisma/client';
-import { StudentController } from '../controllers/student.controller';
+import { StudentController, uploadResumeMulter } from '../controllers/student.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
 
@@ -19,5 +19,15 @@ router.patch('/me', StudentController.updateMe);
 
 // 3. POST /api/students/me/submit - Submit and lock profile
 router.post('/me/submit', StudentController.submitProfile);
+
+// 4. Resume Routes (supports both /me/resume and /resume)
+router.post('/me/resume', uploadResumeMulter.single('resume'), StudentController.uploadResume);
+router.post('/resume', uploadResumeMulter.single('resume'), StudentController.uploadResume);
+
+router.get('/me/resume', StudentController.getResume);
+router.get('/resume', StudentController.getResume);
+
+router.delete('/me/resume', StudentController.deleteResume);
+router.delete('/resume', StudentController.deleteResume);
 
 export default router;

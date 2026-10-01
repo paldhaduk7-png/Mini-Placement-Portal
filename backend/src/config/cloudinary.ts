@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { config } from './env';
 
@@ -7,6 +9,50 @@ cloudinary.config({
   api_secret: config.cloudinaryApiSecret,
   secure: true,
 });
+
+/**
+ * Uploads a raw file (e.g. PDF resume) to Cloudinary or falls back to local storage.
+ */
+export async function uploadResumeFile(
+  fileBuffer: Buffer,
+  originalName: string
+): Promise<{ url: string }> {
+  // 1. Try Cloudinary raw upload if credentials exist
+  if (config.cloudinaryCloudName && config.cloudinaryApiKey && config.cloudinaryApiSecret) {
+    try {
+      const cleanName = path.parse(originalName).name.replace(/[^a-zA-Z0-9_-]/g, '_');
+      const publicId = `${cleanName}_${Date.now()}`;
+      const result = await new Promise<{ secureUrl: string }>((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'mini-placement-portal/resumes',
+            resource_type: 'raw',
+            public_id: `${publicId}.pdf`,
+          },
+          (error, res) => {
+            if (error || !res) {
+              return reject(error || new Error('Cloudinary upload returned empty response.'));
+            }
+            resolve({ secureUrl: res.secure_url });
+          }
+        );
+        stream.end(fileBuffer);
+      });
+      return { url: result.secureUrl };
+    } catch (cloudErr: any) {
+      console.warn('Cloudinary resume upload failed, saving to local storage fallback:', cloudErr.message || cloudErr);
+    }
+  }
+
+  // 2. Local storage fallback
+  const uploadsDir = path.join(process.cwd(), 'uploads', 'resumes');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  const safeFilename = `${Date.now()}_${originalName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+  fs.writeFileSync(path.join(uploadsDir, safeFilename), fileBuffer);
+  return { url: `/uploads/resumes/${safeFilename}` };
+}
 
 /**
  * Uploads an image buffer, base64 string, or file path to Cloudinary.

@@ -78,6 +78,11 @@ model Student {
   totalBacklogs           Int                @default(0)
   profilePhoto            String?
 
+  // Resume Details
+  resumeUrl               String?
+  resumeFileName          String?
+  resumeUploadedAt        DateTime?
+
   // Std 10 Subject Marks Breakdown
   tenthMathsMarks         Float
   tenthScienceMarks       Float

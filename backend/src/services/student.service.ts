@@ -108,6 +108,15 @@ export class StudentService {
     if (data.profilePhoto !== undefined) {
       updateData.profilePhoto = data.profilePhoto ? String(data.profilePhoto).trim() : null;
     }
+    if (data.resumeUrl !== undefined) {
+      updateData.resumeUrl = data.resumeUrl ? String(data.resumeUrl).trim() : null;
+    }
+    if (data.resumeFileName !== undefined) {
+      updateData.resumeFileName = data.resumeFileName ? String(data.resumeFileName).trim() : null;
+    }
+    if (data.resumeUploadedAt !== undefined) {
+      updateData.resumeUploadedAt = data.resumeUploadedAt ? new Date(data.resumeUploadedAt) : null;
+    }
 
     const updatedStudent = await prisma.student.update({
       where: { userId },
@@ -181,6 +190,13 @@ export class StudentService {
       if (!student.diplomaCollege?.trim()) missing.push('diplomaCollege');
     }
 
+    // Validate required resume upload
+    if (!student.resumeUrl) {
+      const error: any = new Error('Please upload your resume before submitting your profile.');
+      error.statusCode = 400;
+      throw error;
+    }
+
     if (missing.length > 0) {
       const error: any = new Error(
         `Cannot submit profile. Missing required data: ${missing.join(', ')}`
@@ -212,5 +228,119 @@ export class StudentService {
       message: 'Profile submitted and locked successfully. Pending TPO verification.',
       student: updatedStudent,
     };
+  }
+
+  /**
+   * Uploads or replaces resume for authenticated student.
+   * Allowed only when profile is unlocked or rejected.
+   */
+  static async uploadResume(userId: string, fileBuffer: Buffer, originalName: string) {
+    const student = await prisma.student.findUnique({
+      where: { userId },
+    });
+
+    if (!student) {
+      const error: any = new Error('Student profile not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (student.isProfileLocked && student.verificationStatus !== VerificationStatus.REJECTED) {
+      const error: any = new Error('Profile is locked and resume cannot be modified.');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const { uploadResumeFile } = await import('../config/cloudinary');
+    const { url } = await uploadResumeFile(fileBuffer, originalName);
+
+    const updated = await prisma.student.update({
+      where: { userId },
+      data: {
+        resumeUrl: url,
+        resumeFileName: originalName,
+        resumeUploadedAt: new Date(),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Deletes resume for authenticated student.
+   * Allowed only when profile is unlocked or rejected.
+   */
+  static async deleteResume(userId: string) {
+    const student = await prisma.student.findUnique({
+      where: { userId },
+    });
+
+    if (!student) {
+      const error: any = new Error('Student profile not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (student.isProfileLocked && student.verificationStatus !== VerificationStatus.REJECTED) {
+      const error: any = new Error('Profile is locked and resume cannot be modified.');
+      error.statusCode = 403;
+      throw error;
+    }
+
+    const updated = await prisma.student.update({
+      where: { userId },
+      data: {
+        resumeUrl: null,
+        resumeFileName: null,
+        resumeUploadedAt: null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+
+    return updated;
+  }
+
+  /**
+   * Retrieves resume information for authenticated student.
+   */
+  static async getResume(userId: string) {
+    const student = await prisma.student.findUnique({
+      where: { userId },
+      select: {
+        id: true,
+        resumeUrl: true,
+        resumeFileName: true,
+        resumeUploadedAt: true,
+        isProfileLocked: true,
+        verificationStatus: true,
+      },
+    });
+
+    if (!student) {
+      const error: any = new Error('Student profile not found.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return student;
   }
 }
