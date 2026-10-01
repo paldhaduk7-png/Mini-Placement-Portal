@@ -124,6 +124,37 @@ export class ApplicationController {
   }
 
   /**
+   * GET /api/student/applications/placement-status
+   * Returns placement status and 2x package calculation for the authenticated student
+   */
+  static async getPlacementStatus(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.user?.userId;
+
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required.',
+        });
+        return;
+      }
+
+      const placementStatus = await ApplicationService.getPlacementStatus(userId);
+
+      res.status(200).json({
+        success: true,
+        data: placementStatus,
+      });
+    } catch (error: any) {
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'An unexpected error occurred while fetching placement status.',
+      });
+    }
+  }
+
+  /**
    * GET /api/tpo/applications
    * Returns all applications with optional query filters (driveId, status, studentId)
    */

@@ -424,7 +424,7 @@ export const DriveDetails: React.FC = () => {
                 ) : (
                   <Button
                     onClick={handleApply}
-                    disabled={!isEligible || isApplying || (drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime())}
+                    disabled={!isEligible || isApplying || Boolean(drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime())}
                     isLoading={isApplying}
                     className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all ${
                       isEligible && !(drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime())

@@ -1,5 +1,5 @@
 import api from './api'
-import { Application } from '../types/application'
+import { Application, PlacementStatus } from '../types/application'
 
 export const applicationService = {
   // Student apply to drive
@@ -16,6 +16,14 @@ export const applicationService = {
 
   async getMyApplicationById(id: string): Promise<{ success: boolean; data: Application }> {
     const response = await api.get<{ success: boolean; data: Application }>(`/student/applications/${id}`)
+    return response.data
+  },
+
+  // Student placement status
+  async getPlacementStatus(): Promise<{ success: boolean; data: PlacementStatus }> {
+    const response = await api.get<{ success: boolean; data: PlacementStatus }>(
+      '/student/applications/placement-status'
+    )
     return response.data
   },
 

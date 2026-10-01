@@ -20,3 +20,11 @@ export interface Application {
   student?: Student
   drive?: RecruitmentDrive
 }
+
+export interface PlacementStatus {
+  isSelected: boolean
+  selectedCompany: string | null
+  selectedPackage: number | null
+  minimumNextPackage: number | null
+}
+

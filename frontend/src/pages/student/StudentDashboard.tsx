@@ -5,6 +5,7 @@ import { useAppSelector } from '@/hooks/useAppSelector';
 import { fetchStudentProfile } from '@/features/student/studentSlice';
 import { fetchMyApplications } from '@/features/application/applicationSlice';
 import driveService from '@/services/drive.service';
+import applicationService from '@/services/application.service';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,10 +28,12 @@ import {
   AlertCircle,
   ExternalLink,
   CheckCircle2,
+  CheckCircle,
   Clock,
   XCircle,
 } from 'lucide-react';
 import type { RecruitmentDrive } from '@/types/drive';
+import type { PlacementStatus } from '@/types/application';
 
 export const StudentDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -39,6 +42,7 @@ export const StudentDashboard: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth);
 
   const [availableDrives, setAvailableDrives] = useState<RecruitmentDrive[]>([]);
+  const [placementStatus, setPlacementStatus] = useState<PlacementStatus | null>(null);
 
   const loadDrives = async () => {
     try {
@@ -50,10 +54,22 @@ export const StudentDashboard: React.FC = () => {
     }
   };
 
+  const loadPlacementStatus = async () => {
+    try {
+      const res = await applicationService.getPlacementStatus();
+      if (res?.data) {
+        setPlacementStatus(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to load placement status:', err);
+    }
+  };
+
   useEffect(() => {
     dispatch(fetchStudentProfile());
     dispatch(fetchMyApplications());
     loadDrives();
+    loadPlacementStatus();
   }, [dispatch]);
 
   const studentName = profile?.fullName || user?.fullName || 'Student';
@@ -201,6 +217,39 @@ export const StudentDashboard: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Placement Update Notice (Shown ONLY when student has an application with status = SELECTED) */}
+      {placementStatus?.isSelected && placementStatus.selectedPackage != null && (
+        <div className="p-5 rounded-xl bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50/70 border border-emerald-200/80 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="h-10 w-10 rounded-xl bg-emerald-100/90 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5 border border-emerald-200">
+              <CheckCircle className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-base font-bold text-emerald-950 flex items-center gap-1.5">
+                  🎉 Placement Update
+                </h4>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Selected
+                </span>
+              </div>
+              <p className="text-sm font-medium text-slate-800 mt-1">
+                You have been selected for a <span className="font-bold text-emerald-800">₹{placementStatus.selectedPackage} LPA</span> package{placementStatus.selectedCompany ? ` at ${placementStatus.selectedCompany}` : ''}.
+              </p>
+              <p className="text-xs text-slate-600 mt-0.5">
+                You can apply to companies offering <span className="font-bold text-slate-900">₹{placementStatus.minimumNextPackage} LPA</span> or more.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" asChild className="bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 text-xs font-semibold gap-1.5 self-start sm:self-center shadow-sm">
+            <Link to="/student/drives">
+              View Recruitment Drives
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      )}
 
       {/* Latest Recruitment Drives Section */}
       <Card className="border-slate-200 shadow-sm">

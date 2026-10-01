@@ -226,6 +226,69 @@ export class ApplicationService {
   }
 
   /**
+   * STUDENT: Get placement status and 2x minimum package eligibility rule
+   */
+  static async getPlacementStatus(userId: string) {
+    const student = await prisma.student.findUnique({
+      where: { userId },
+    });
+
+    if (!student) {
+      const error: any = new Error('Student profile not found for the authenticated user.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const selectedApplications = await prisma.application.findMany({
+      where: {
+        studentId: student.id,
+        status: ApplicationStatus.SELECTED,
+      },
+      include: {
+        drive: {
+          include: {
+            company: {
+              select: { id: true, name: true, imageUrl: true },
+            },
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    });
+
+    if (selectedApplications.length === 0) {
+      return {
+        isSelected: false,
+        selectedCompany: null,
+        selectedPackage: null,
+        minimumNextPackage: null,
+      };
+    }
+
+    // Follow the system placement source-of-truth from eligibility.service.ts:
+    // If multiple selected, take the highest package (maxCtc)
+    let selectedApp = selectedApplications[0];
+    let maxCtc = 0;
+    for (const app of selectedApplications) {
+      if (app.drive.ctc > maxCtc) {
+        maxCtc = app.drive.ctc;
+        selectedApp = app;
+      }
+    }
+
+    const minimumNextPackage = maxCtc * 2;
+
+    return {
+      isSelected: true,
+      selectedCompany: selectedApp.drive.company?.name || null,
+      selectedPackage: maxCtc,
+      minimumNextPackage,
+    };
+  }
+
+  /**
    * TPO: Get all applications with optional filters
    */
   static async getTpoApplications(filters: TpoApplicationFilter) {

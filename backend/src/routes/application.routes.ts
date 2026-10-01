@@ -26,6 +26,14 @@ studentApplicationRouter.get(
   ApplicationController.getStudentApplications
 );
 
+// GET /api/student/applications/placement-status
+studentApplicationRouter.get(
+  '/placement-status',
+  authenticateToken,
+  requireRole(Role.STUDENT),
+  ApplicationController.getPlacementStatus
+);
+
 // GET /api/student/applications/:id
 studentApplicationRouter.get(
   '/:id',
