@@ -24,8 +24,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Uploaded image assets
-public/images/*
-public/*.png
-public/*.jpeg
