@@ -13,7 +13,7 @@ import {
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { toast } from 'sonner';
-import { ShieldCheck, Plus, Search, Eye } from 'lucide-react';
+import { ShieldCheck, Plus, Search, Edit2, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 export const TPOUsers: React.FC = () => {
@@ -21,14 +21,20 @@ export const TPOUsers: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Add TPO User Modal State
+  // Add/Edit TPO User Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Delete TPO User Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<TpoUser | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -46,40 +52,86 @@ export const TPOUsers: React.FC = () => {
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleSubmitUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email.trim() || !password) {
-      toast.error('Email and password are required.');
+    if (!email.trim()) {
+      toast.error('Email is required.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (!editingUserId && !password) {
+      toast.error('Password is required for new users.');
+      return;
+    }
+
+    if (password && password !== confirmPassword) {
       toast.error('Passwords do not match.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await tpoUserService.createTpoUser({
-        email: email.trim(),
-        password,
-        name: name.trim() || undefined,
-        phone: phone.trim() || undefined,
-      });
-
-      toast.success('TPO User created successfully!');
-      setIsModalOpen(false);
-      setName('');
-      setEmail('');
-      setPhone('');
-      setPassword('');
-      setConfirmPassword('');
+      if (editingUserId) {
+        await tpoUserService.updateTpoUser(editingUserId, {
+          email: email.trim(),
+          password: password ? password : undefined,
+          name: name.trim() || undefined,
+          phone: phone.trim() || undefined,
+        });
+        toast.success('TPO User updated successfully!');
+      } else {
+        await tpoUserService.createTpoUser({
+          email: email.trim(),
+          password,
+          name: name.trim() || undefined,
+          phone: phone.trim() || undefined,
+        });
+        toast.success('TPO User created successfully!');
+      }
+      
+      closeUserModal();
       await loadUsers();
     } catch (err: any) {
-      toast.error(err.response?.data?.message || err.message || 'Failed to create TPO user.');
+      toast.error(err.response?.data?.message || err.message || 'Failed to save TPO user.');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const closeUserModal = () => {
+    setIsModalOpen(false);
+    setEditingUserId(null);
+    setName('');
+    setEmail('');
+    setPhone('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
+  const openEditModal = (user: TpoUser) => {
+    setEditingUserId(user.id);
+    setName(user.name || '');
+    setEmail(user.email);
+    setPhone(user.phone || '');
+    setPassword('');
+    setConfirmPassword('');
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!userToDelete) return;
+    setIsDeleting(true);
+    try {
+      await tpoUserService.deleteTpoUser(userToDelete.id);
+      toast.success('TPO User deleted successfully!');
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
+      await loadUsers();
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || err.message || 'Failed to delete user.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -113,7 +165,7 @@ export const TPOUsers: React.FC = () => {
               className="pl-9 text-xs h-9 bg-white border-slate-200"
             />
           </div>
-          <Button onClick={() => setIsModalOpen(true)} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-9 shadow-sm">
+          <Button onClick={() => { closeUserModal(); setIsModalOpen(true); }} size="sm" className="bg-blue-600 hover:bg-blue-700 text-white h-9 shadow-sm">
             <Plus className="h-4 w-4 mr-1.5" /> Add TPO User
           </Button>
         </div>
@@ -159,14 +211,24 @@ export const TPOUsers: React.FC = () => {
                       {u.role}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right flex items-center justify-end gap-1">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 text-xs font-semibold text-slate-400 hover:text-blue-600 bg-transparent hover:bg-blue-50"
-                      onClick={() => toast.info('View/Edit functionality is coming soon')}
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                      onClick={() => openEditModal(u)}
+                      title="Edit User"
                     >
-                      <Eye className="h-4 w-4 mr-1.5" /> View
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                      onClick={() => { setUserToDelete(u); setIsDeleteModalOpen(true); }}
+                      title="Delete User"
+                    >
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -176,33 +238,28 @@ export const TPOUsers: React.FC = () => {
         </div>
       )}
 
-      {/* Add TPO User Modal */}
+      {/* Add/Edit TPO User Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200 border border-slate-100">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
-                  Add TPO User
+                  {editingUserId ? 'Edit TPO User' : 'Add TPO User'}
                 </h3>
-                <p className="text-xs text-slate-500 mt-1 font-medium">Create a new administrator account.</p>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  {editingUserId ? 'Update administrator account details.' : 'Create a new administrator account.'}
+                </p>
               </div>
               <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setName('');
-                  setEmail('');
-                  setPhone('');
-                  setPassword('');
-                  setConfirmPassword('');
-                }}
+                onClick={closeUserModal}
                 className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
+            <form onSubmit={handleSubmitUser} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-slate-700">Full Name</label>
                 <Input
@@ -240,11 +297,12 @@ export const TPOUsers: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-slate-700">
-                  Password <span className="text-blue-500">*</span>
+                  Password {editingUserId ? '' : <span className="text-blue-500">*</span>}
                 </label>
                 <Input
                   type="password"
-                  required
+                  required={!editingUserId}
+                  placeholder={editingUserId ? "Leave blank to keep unchanged" : ""}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm"
@@ -253,11 +311,12 @@ export const TPOUsers: React.FC = () => {
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-slate-700">
-                  Confirm Password <span className="text-blue-500">*</span>
+                  Confirm Password {editingUserId ? '' : <span className="text-blue-500">*</span>}
                 </label>
                 <Input
                   type="password"
-                  required
+                  required={!editingUserId && !!password}
+                  placeholder={editingUserId ? "Leave blank to keep unchanged" : ""}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="h-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-colors text-sm"
@@ -282,11 +341,47 @@ export const TPOUsers: React.FC = () => {
                   {isSubmitting ? (
                     <LoadingSpinner size="sm" />
                   ) : (
-                    'Create User'
+                    editingUserId ? 'Save Changes' : 'Create User'
                   )}
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {isDeleteModalOpen && userToDelete && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-6 animate-in zoom-in-95 duration-200 border border-slate-100">
+            <div className="flex flex-col items-center text-center space-y-3">
+              <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Trash2 className="h-6 w-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-900">Delete TPO User</h3>
+                <p className="text-sm text-slate-500 mt-2">
+                  Are you sure you want to delete <span className="font-semibold text-slate-700">{userToDelete.name || userToDelete.email}</span>? This action cannot be undone.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 rounded-xl"
+                onClick={() => { setIsDeleteModalOpen(false); setUserToDelete(null); }}
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 rounded-xl bg-red-600 hover:bg-red-700 text-white shadow-md shadow-red-200"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+              >
+                {isDeleting ? <LoadingSpinner size="sm" /> : 'Delete'}
+              </Button>
+            </div>
           </div>
         </div>
       )}

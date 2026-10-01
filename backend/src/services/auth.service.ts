@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Role, StudentType, VerificationStatus } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { config } from '../config/env';
-import { sendOtpEmail } from '../lib/mailer';
+import { sendOtpEmail, sendTpoOtpEmail } from '../lib/mailer';
 
 // In-memory store for OTPs. Key is email.
 // In production, this should ideally be in Redis or database.
@@ -215,7 +215,7 @@ export class AuthService {
 
     // Send email
     try {
-      await sendOtpEmail(email, otp);
+      await sendTpoOtpEmail(email, otp);
     } catch (error) {
       console.error('Failed to send OTP email:', error);
       if (config.nodeEnv === 'development') {

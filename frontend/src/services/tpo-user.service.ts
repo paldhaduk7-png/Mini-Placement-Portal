@@ -20,6 +20,15 @@ class TpoUserService {
     return response.data.user;
   }
 
+  async updateTpoUser(id: string, data: any): Promise<TpoUser> {
+    const response = await api.put(`/tpo/users/${id}`, data);
+    return response.data.user;
+  }
+
+  async deleteTpoUser(id: string): Promise<void> {
+    await api.delete(`/tpo/users/${id}`);
+  }
+
   async getMyProfile(): Promise<TpoUser> {
     const response = await api.get('/tpo/profile');
     return response.data;
