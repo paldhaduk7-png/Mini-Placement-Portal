@@ -155,6 +155,10 @@ export const DriveDetails: React.FC = () => {
                   <Calendar className="h-3.5 w-3.5 text-slate-400" />
                   Deadline: {drive?.deadline ? formatDate(drive.deadline) : 'N/A'}
                 </span>
+                <span className="flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5 text-slate-400" />
+                  Drive Date: {drive?.driveDate ? formatDate(drive.driveDate) : 'TBA'}
+                </span>
               </div>
             </div>
           </div>

@@ -19,11 +19,11 @@ export class EligibilityService {
    * Evaluates student profile against drive criteria.
    * Collects all applicable failure reasons without short-circuiting.
    */
-  static checkStudentEligibility(
+  static async checkStudentEligibility(
     student: Student | StudentWithUser,
     drive: RecruitmentDrive,
     currentTime: Date = new Date()
-  ): EligibilityResult {
+  ): Promise<EligibilityResult> {
     const reasons: string[] = [];
 
     // 1. Profile Verification Check
@@ -117,6 +117,33 @@ export class EligibilityService {
       );
     }
 
+    // 10. Package-based Placement Eligibility Check
+    const selectedApplications = await prisma.application.findMany({
+      where: {
+        studentId: student.id,
+        status: 'SELECTED',
+      },
+      include: {
+        drive: true,
+      },
+    });
+
+    if (selectedApplications.length > 0) {
+      let maxCtc = 0;
+      for (const app of selectedApplications) {
+        if (app.drive.ctc > maxCtc) {
+          maxCtc = app.drive.ctc;
+        }
+      }
+
+      const requiredPackage = maxCtc * 2;
+      if (drive.ctc < requiredPackage) {
+        reasons.push(
+          `You have already been selected for a ₹${maxCtc} LPA package. This drive requires a minimum package of ₹${requiredPackage} LPA under the current placement eligibility rule.`
+        );
+      }
+    }
+
     return {
       eligible: reasons.length === 0,
       reasons,
@@ -158,7 +185,7 @@ export class EligibilityService {
     const now = new Date();
 
     for (const student of students) {
-      const result = this.checkStudentEligibility(student, drive, now);
+      const result = await this.checkStudentEligibility(student, drive, now);
       if (result.eligible) {
         eligibleStudents.push({
           id: student.id,
@@ -223,7 +250,7 @@ export class EligibilityService {
     }
 
     // 3. Evaluate eligibility
-    const result = this.checkStudentEligibility(student, drive);
+    const result = await this.checkStudentEligibility(student, drive);
 
     return {
       drive,

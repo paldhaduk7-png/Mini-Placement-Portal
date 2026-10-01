@@ -75,7 +75,7 @@ export class ApplicationService {
     }
 
     // 4. Server-side eligibility re-check (never trust frontend)
-    const eligibilityResult = EligibilityService.checkStudentEligibility(student, drive);
+    const eligibilityResult = await EligibilityService.checkStudentEligibility(student, drive);
 
     if (!eligibilityResult.eligible) {
       const error: any = new Error('You do not meet the eligibility criteria for this recruitment drive.');

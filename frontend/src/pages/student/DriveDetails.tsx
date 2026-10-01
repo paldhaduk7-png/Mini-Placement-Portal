@@ -424,16 +424,20 @@ export const DriveDetails: React.FC = () => {
                 ) : (
                   <Button
                     onClick={handleApply}
-                    disabled={!isEligible || isApplying}
+                    disabled={!isEligible || isApplying || (drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime())}
                     isLoading={isApplying}
                     className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all ${
-                      isEligible
+                      isEligible && !(drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime())
                         ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer'
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
                     }`}
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    {isEligible ? 'Apply Now' : 'Cannot Apply (Criteria Not Met)'}
+                    {drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime()
+                      ? 'Applications Closed'
+                      : isEligible
+                      ? 'Apply Now'
+                      : 'Cannot Apply (Criteria Not Met)'}
                   </Button>
                 )}
               </div>
