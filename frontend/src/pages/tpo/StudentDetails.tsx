@@ -285,44 +285,63 @@ export const StudentDetails: React.FC = () => {
           </div>
 
           {/* Placement Information */}
-          {(applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement) || applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement === false)) && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement) && (
-                <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50">
-                  <h3 className="text-xs font-bold text-emerald-800 uppercase mb-3 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    Current Placement
-                  </h3>
-                  {applications.filter(a => a.status === 'SELECTED' && a.isCurrentPlacement).map(app => (
-                    <div key={app.id} className="space-y-1">
-                      <div className="font-bold text-slate-900">{app.drive?.company?.name || 'Company'}</div>
-                      <div className="text-sm font-semibold text-emerald-700">₹{app.drive?.ctc || 0} LPA</div>
-                      <Badge variant="success" className="mt-1">SELECTED</Badge>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {applications.some(a => a.status === 'SELECTED' && a.isCurrentPlacement === false) && (
-                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
-                  <h3 className="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
-                    <CheckCircle2 className="h-4 w-4 text-slate-400" />
-                    Previous Placements
-                  </h3>
-                  <div className="space-y-4">
-                    {applications.filter(a => a.status === 'SELECTED' && a.isCurrentPlacement === false).map(app => (
-                      <div key={app.id} className="space-y-1 pb-3 border-b border-slate-200 last:border-0 last:pb-0">
-                        <div className="font-bold text-slate-700">{app.drive?.company?.name || 'Company'}</div>
-                        <div className="text-sm font-semibold text-slate-600">₹{app.drive?.ctc || 0} LPA</div>
-                        <div className="mt-1">
-                          <span className="text-[10px] font-medium text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded block w-max">SUPERSEDED</span>
-                        </div>
+          {(() => {
+            const selectedApps = applications.filter((a) => a.status === 'SELECTED');
+            const currentPlacementApp =
+              selectedApps.find((a) => a.isCurrentPlacement) ||
+              (selectedApps.length > 0 ? selectedApps[0] : null);
+            const previousPlacements = currentPlacementApp
+              ? selectedApps.filter((a) => a.id !== currentPlacementApp.id)
+              : [];
+
+            if (!currentPlacementApp && previousPlacements.length === 0) {
+              return null;
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {currentPlacementApp && (
+                  <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50">
+                    <h3 className="text-xs font-bold text-emerald-800 uppercase mb-3 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                      Current Placement
+                    </h3>
+                    <div className="space-y-1">
+                      <div className="font-bold text-slate-900">{currentPlacementApp.drive?.company?.name || 'Company'}</div>
+                      <div className="text-sm font-semibold text-emerald-700">₹{currentPlacementApp.drive?.ctc || 0} LPA</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="success">SELECTED</Badge>
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">
+                          CURRENT PLACEMENT
+                        </span>
                       </div>
-                    ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+                {previousPlacements.length > 0 && (
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+                    <h3 className="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-slate-400" />
+                      Previous Placements
+                    </h3>
+                    <div className="space-y-4">
+                      {previousPlacements.map((app) => (
+                        <div key={app.id} className="space-y-1 pb-3 border-b border-slate-200 last:border-0 last:pb-0">
+                          <div className="font-bold text-slate-700">{app.drive?.company?.name || 'Company'}</div>
+                          <div className="text-sm font-semibold text-slate-600">₹{app.drive?.ctc || 0} LPA</div>
+                          <div className="mt-1">
+                            <span className="text-[10px] font-medium text-slate-500 bg-slate-200 px-1.5 py-0.5 rounded block w-max">
+                              SUPERSEDED
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* 10th Marks Detail Grid */}
           <div className="p-4 rounded-xl border border-slate-200">

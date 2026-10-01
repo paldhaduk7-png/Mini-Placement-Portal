@@ -89,55 +89,66 @@ export const Applications: React.FC = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {applications.map((app, index) => {
-                  const drive = app.drive;
-                  const company = drive?.company;
+                {(() => {
+                  const selectedApps = applications.filter((a) => a.status === 'SELECTED');
+                  const currentSelectedApp =
+                    selectedApps.find((a) => a.isCurrentPlacement) ||
+                    (selectedApps.length > 0 ? selectedApps[0] : null);
 
-                  return (
-                    <TableRow key={app.id} className="hover:bg-slate-50/70 transition-colors">
-                      <TableCell className="text-center font-medium text-slate-400 text-xs">
-                        {index + 1}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          {company?.imageUrl ? (
-                            <img
-                              src={company.imageUrl}
-                              alt={company.name}
-                              className="h-8 w-8 rounded-md object-contain border border-slate-100 p-0.5 bg-white"
-                            />
-                          ) : (
-                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-50 text-blue-700 font-semibold text-xs border border-blue-100">
-                              <Building2 className="h-4 w-4" />
+                  return applications.map((app, index) => {
+                    const drive = app.drive;
+                    const company = drive?.company;
+                    const isCurrent =
+                      app.status === 'SELECTED' &&
+                      (app.isCurrentPlacement ?? currentSelectedApp?.id === app.id);
+                    const isSuperseded =
+                      app.status === 'SELECTED' && !isCurrent;
+
+                    return (
+                      <TableRow key={app.id} className="hover:bg-slate-50/70 transition-colors">
+                        <TableCell className="text-center font-medium text-slate-400 text-xs">
+                          {index + 1}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            {company?.imageUrl ? (
+                              <img
+                                src={company.imageUrl}
+                                alt={company.name}
+                                className="h-8 w-8 rounded-md object-contain border border-slate-100 p-0.5 bg-white"
+                              />
+                            ) : (
+                              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-50 text-blue-700 font-semibold text-xs border border-blue-100">
+                                <Building2 className="h-4 w-4" />
+                              </div>
+                            )}
+                            <span className="font-semibold text-slate-900 text-sm">
+                              {company?.name || 'Company'}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-slate-800 text-sm">
+                          {drive?.role || 'Engineer'}
+                        </TableCell>
+                        <TableCell className="text-sm font-semibold text-slate-700">
+                          {drive?.ctc ? formatCurrencyLPA(drive.ctc) : 'N/A'}
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-600">
+                          {formatDate(app.appliedAt)}
+                        </TableCell>
+                        <TableCell>
+                          {getStatusBadge(app.status)}
+                          {isCurrent && (
+                            <div className="mt-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded inline-block">
+                              CURRENT PLACEMENT
                             </div>
                           )}
-                          <span className="font-semibold text-slate-900 text-sm">
-                            {company?.name || 'Company'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium text-slate-800 text-sm">
-                        {drive?.role || 'Engineer'}
-                      </TableCell>
-                      <TableCell className="text-sm font-semibold text-slate-700">
-                        {drive?.ctc ? formatCurrencyLPA(drive.ctc) : 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600">
-                        {formatDate(app.appliedAt)}
-                      </TableCell>
-                      <TableCell>
-                        {getStatusBadge(app.status)}
-                        {app.status === 'SELECTED' && app.isCurrentPlacement && (
-                          <div className="mt-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded inline-block">
-                            Current Placement
-                          </div>
-                        )}
-                        {app.status === 'SELECTED' && app.isCurrentPlacement === false && (
-                          <div className="mt-1.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block border border-slate-200">
-                            Previous Placement
-                          </div>
-                        )}
-                      </TableCell>
+                          {isSuperseded && (
+                            <div className="mt-1.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block border border-slate-200">
+                              SUPERSEDED
+                            </div>
+                          )}
+                        </TableCell>
                       <TableCell className="text-right">
                         {drive?.id && (
                           <Button variant="ghost" size="sm" asChild className="h-8 text-xs text-blue-600 hover:text-blue-700">
@@ -150,8 +161,9 @@ export const Applications: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   );
-                })}
-              </TableBody>
+                });
+              })()}
+            </TableBody>
             </Table>
           </div>
         </Card>

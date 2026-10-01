@@ -144,6 +144,7 @@ export class ApplicationService {
       where: { studentId: student.id },
       select: {
         id: true,
+        studentId: true,
         status: true,
         remarks: true,
         isCurrentPlacement: true,
@@ -169,7 +170,19 @@ export class ApplicationService {
       orderBy: { appliedAt: 'desc' },
     });
 
-    return applications;
+    // Enforce placement resolution strictly scoped to this student
+    const selectedApps = applications.filter((app) => app.status === ApplicationStatus.SELECTED);
+    const currentSelected =
+      selectedApps.find((app) => app.isCurrentPlacement) ||
+      (selectedApps.length > 0 ? selectedApps[0] : null);
+
+    return applications.map((app) => ({
+      ...app,
+      isCurrentPlacement:
+        app.status === ApplicationStatus.SELECTED && currentSelected
+          ? app.id === currentSelected.id
+          : false,
+    }));
   }
 
   /**
@@ -241,9 +254,10 @@ export class ApplicationService {
       throw error;
     }
 
-    const currentPlacement = await prisma.application.findFirst({
+    let currentPlacement = await prisma.application.findFirst({
       where: {
         studentId: student.id,
+        status: ApplicationStatus.SELECTED,
         isCurrentPlacement: true,
       },
       include: {
@@ -256,6 +270,26 @@ export class ApplicationService {
         },
       },
     });
+
+    // Fallback: if student has a SELECTED application but isCurrentPlacement wasn't flagged yet
+    if (!currentPlacement) {
+      currentPlacement = await prisma.application.findFirst({
+        where: {
+          studentId: student.id,
+          status: ApplicationStatus.SELECTED,
+        },
+        orderBy: [{ updatedAt: 'desc' }, { appliedAt: 'desc' }],
+        include: {
+          drive: {
+            include: {
+              company: {
+                select: { id: true, name: true, imageUrl: true },
+              },
+            },
+          },
+        },
+      });
+    }
 
     if (!currentPlacement) {
       return {
@@ -354,11 +388,52 @@ export class ApplicationService {
       orderBy: { appliedAt: 'desc' },
     });
 
+    // Resolve current placement scoped strictly per studentId
+    const studentIds = Array.from(new Set(applications.map((a) => a.student.id)));
+    const currentPlacementMap = new Map<string, string>();
+
+    if (studentIds.length > 0) {
+      const currentPlacements = await prisma.application.findMany({
+        where: {
+          studentId: { in: studentIds },
+          status: ApplicationStatus.SELECTED,
+          isCurrentPlacement: true,
+        },
+        select: { id: true, studentId: true },
+      });
+
+      for (const cp of currentPlacements) {
+        currentPlacementMap.set(cp.studentId, cp.id);
+      }
+
+      // For any student with SELECTED applications who has no isCurrentPlacement: true marked yet
+      for (const sid of studentIds) {
+        if (!currentPlacementMap.has(sid)) {
+          const latestSelected = await prisma.application.findFirst({
+            where: { studentId: sid, status: ApplicationStatus.SELECTED },
+            orderBy: [{ updatedAt: 'desc' }, { appliedAt: 'desc' }],
+            select: { id: true },
+          });
+          if (latestSelected) {
+            currentPlacementMap.set(sid, latestSelected.id);
+            prisma.application
+              .update({
+                where: { id: latestSelected.id },
+                data: { isCurrentPlacement: true },
+              })
+              .catch(() => {});
+          }
+        }
+      }
+    }
+
     return applications.map((app) => ({
       id: app.id,
       status: app.status,
       remarks: app.remarks,
-      isCurrentPlacement: app.isCurrentPlacement,
+      isCurrentPlacement:
+        app.status === ApplicationStatus.SELECTED &&
+        currentPlacementMap.get(app.student.id) === app.id,
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
       student: {
@@ -443,11 +518,35 @@ export class ApplicationService {
       throw error;
     }
 
+    // Determine current placement scoped to this student
+    let isCurrentPlacement = false;
+    if (app.status === ApplicationStatus.SELECTED) {
+      const currentPlacement =
+        (await prisma.application.findFirst({
+          where: {
+            studentId: app.student.id,
+            status: ApplicationStatus.SELECTED,
+            isCurrentPlacement: true,
+          },
+          select: { id: true },
+        })) ||
+        (await prisma.application.findFirst({
+          where: {
+            studentId: app.student.id,
+            status: ApplicationStatus.SELECTED,
+          },
+          orderBy: [{ updatedAt: 'desc' }, { appliedAt: 'desc' }],
+          select: { id: true },
+        }));
+
+      isCurrentPlacement = currentPlacement?.id === app.id;
+    }
+
     return {
       id: app.id,
       status: app.status,
       remarks: app.remarks,
-      isCurrentPlacement: app.isCurrentPlacement,
+      isCurrentPlacement,
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
       student: {
@@ -469,6 +568,70 @@ export class ApplicationService {
       },
       drive: app.drive,
     };
+  }
+
+  /**
+   * Scoped strictly per studentId: ensures exactly the current/latest SELECTED application has
+   * isCurrentPlacement = true, and all other applications of this student have isCurrentPlacement = false.
+   */
+  static async syncStudentPlacements(studentId: string, preferredCurrentAppId?: string) {
+    const apps = await prisma.application.findMany({
+      where: { studentId },
+      orderBy: [{ updatedAt: 'desc' }, { appliedAt: 'desc' }],
+    });
+
+    const selectedApps = apps.filter((a) => a.status === ApplicationStatus.SELECTED);
+
+    if (selectedApps.length === 0) {
+      await prisma.application.updateMany({
+        where: { studentId, isCurrentPlacement: true },
+        data: { isCurrentPlacement: false },
+      });
+      return;
+    }
+
+    let currentAppId: string;
+    if (preferredCurrentAppId && selectedApps.some((a) => a.id === preferredCurrentAppId)) {
+      currentAppId = preferredCurrentAppId;
+    } else {
+      const existingCurrent = selectedApps.find((a) => a.isCurrentPlacement);
+      currentAppId = existingCurrent ? existingCurrent.id : selectedApps[0].id;
+    }
+
+    // Set the current placement to true
+    await prisma.application.update({
+      where: { id: currentAppId },
+      data: { isCurrentPlacement: true },
+    });
+
+    // Set all other applications of this student to false
+    await prisma.application.updateMany({
+      where: {
+        studentId,
+        id: { not: currentAppId },
+        isCurrentPlacement: true,
+      },
+      data: { isCurrentPlacement: false },
+    });
+  }
+
+  /**
+   * Synchronizes and verifies current placement status for all students in the database.
+   * Scoped strictly per studentId.
+   */
+  static async syncAllStudentPlacements() {
+    const studentsWithApps = await prisma.student.findMany({
+      where: {
+        applications: {
+          some: {},
+        },
+      },
+      select: { id: true },
+    });
+
+    for (const student of studentsWithApps) {
+      await this.syncStudentPlacements(student.id);
+    }
   }
 
   /**
@@ -543,41 +706,35 @@ export class ApplicationService {
       },
     };
 
-    let updated;
+    // Update status and remarks
+    await prisma.application.update({
+      where: { id: applicationId },
+      data: dataToUpdate,
+    });
 
-    if (normalizedStatus === ApplicationStatus.SELECTED && existing.status !== ApplicationStatus.SELECTED) {
-      dataToUpdate.isCurrentPlacement = true;
-      const transactionOps = [
-        prisma.application.updateMany({
-          where: { studentId: existing.studentId, isCurrentPlacement: true },
-          data: { isCurrentPlacement: false },
-        }),
-        prisma.application.update({
-          where: { id: applicationId },
-          data: dataToUpdate,
-          select: selectObject,
-        }),
-      ];
-      const results = await prisma.$transaction(transactionOps);
-      updated = results[1];
+    // Synchronize placement state strictly scoped to this student
+    if (normalizedStatus === ApplicationStatus.SELECTED) {
+      await this.syncStudentPlacements(existing.studentId, applicationId);
     } else {
-      if (normalizedStatus !== ApplicationStatus.SELECTED && existing.status === ApplicationStatus.SELECTED) {
-        if ((existing as any).isCurrentPlacement) {
-          dataToUpdate.isCurrentPlacement = false;
-        }
-      }
-      updated = await prisma.application.update({
-        where: { id: applicationId },
-        data: dataToUpdate,
-        select: selectObject,
-      });
+      await this.syncStudentPlacements(existing.studentId);
+    }
+
+    const updated = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: selectObject,
+    });
+
+    if (!updated) {
+      const error: any = new Error('Failed to retrieve updated application.');
+      error.statusCode = 500;
+      throw error;
     }
 
     return {
       id: updated.id,
       status: updated.status,
       remarks: updated.remarks,
-      isCurrentPlacement: (updated as any).isCurrentPlacement,
+      isCurrentPlacement: updated.isCurrentPlacement,
       appliedAt: updated.appliedAt,
       updatedAt: updated.updatedAt,
       student: {
@@ -591,3 +748,4 @@ export class ApplicationService {
     };
   }
 }
+

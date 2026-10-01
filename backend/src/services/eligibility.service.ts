@@ -138,15 +138,29 @@ export class EligibilityService {
     }
 
     // 10. Package-based Placement Eligibility Check
-    const currentPlacement = await prisma.application.findFirst({
+    let currentPlacement = await prisma.application.findFirst({
       where: {
         studentId: student.id,
+        status: 'SELECTED',
         isCurrentPlacement: true,
       },
       include: {
         drive: true,
       },
     });
+
+    if (!currentPlacement) {
+      currentPlacement = await prisma.application.findFirst({
+        where: {
+          studentId: student.id,
+          status: 'SELECTED',
+        },
+        orderBy: [{ updatedAt: 'desc' }, { appliedAt: 'desc' }],
+        include: {
+          drive: true,
+        },
+      });
+    }
 
     if (currentPlacement) {
       const currentCtc = currentPlacement.drive.ctc;

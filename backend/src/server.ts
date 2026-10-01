@@ -1,6 +1,7 @@
 import { config } from './config/env';
 import app from './app';
 import prisma from './lib/prisma';
+import { ApplicationService } from './services/application.service';
 import http from 'http';
 
 const PORT = config.port || 5000;
@@ -11,6 +12,10 @@ async function startServer() {
     // Verify database connection before starting server
     await prisma.$queryRaw`SELECT 1`;
     console.log('Database connected successfully');
+
+    // Ensure all student placement states are synchronized per student
+    await ApplicationService.syncAllStudentPlacements();
+    console.log('Student placements synchronized successfully');
 
     // Start Express HTTP server
     server = app.listen(PORT, () => {
