@@ -1,17 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import applicationService from '@/services/application.service';
 import { ApplicationTable } from '@/components/tpo/ApplicationTable';
 import { ScheduleInterviewModal } from '@/components/tpo/ScheduleInterviewModal';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { FileCheck, Search } from 'lucide-react';
+import { FileCheck, Search, Download, ChevronDown } from 'lucide-react';
 import type { Application, ApplicationStatus, Interview } from '@/types/application';
 
 export const Applications: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
   const [updatingAppIds, setUpdatingAppIds] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -19,6 +23,16 @@ export const Applications: React.FC = () => {
     application: Application;
     existingInterview?: Interview;
   } | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setIsExportMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     loadApplications();
@@ -167,20 +181,99 @@ export const Applications: React.FC = () => {
     }
   };
 
-  const filteredApplications = applications.filter((app) => {
-    const term = searchTerm.toLowerCase();
-    const studentMatch = app.student?.fullName?.toLowerCase().includes(term);
-    const companyMatch = app.drive?.company?.name?.toLowerCase().includes(term);
-    const roleMatch = app.drive?.role?.toLowerCase().includes(term);
-    const matchesSearch = !term || studentMatch || companyMatch || roleMatch;
+  const handleExportCsv = async (mode: 'all' | 'filtered') => {
+    setIsExportMenuOpen(false);
 
-    const matchesStatus =
-      statusFilter === 'ALL' ||
-      app.status === statusFilter ||
-      Boolean(updatingAppIds[app.id]);
+    if (mode === 'filtered' && filteredApplications.length === 0) {
+      toast.error('No applications available to export.');
+      return;
+    }
 
-    return matchesSearch && matchesStatus;
-  });
+    if (mode === 'all' && applications.length === 0) {
+      toast.error('No applications available to export.');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const params =
+        mode === 'filtered'
+          ? {
+              status: statusFilter !== 'ALL' ? statusFilter : undefined,
+              search: searchTerm.trim() ? searchTerm.trim() : undefined,
+              applicationIds: filteredApplications.map((a) => a.id).join(','),
+            }
+          : undefined;
+
+      const blob = await applicationService.exportApplicationsCsv(params);
+
+      // Trigger browser download
+      const today = new Date().toISOString().split('T')[0];
+      const filename = `placement-applications-${today}.csv`;
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success(
+        mode === 'all'
+          ? 'All applications exported successfully.'
+          : 'Filtered applications exported successfully.'
+      );
+    } catch (err: any) {
+      let message = 'Failed to export applications.';
+      if (err?.response?.data instanceof Blob) {
+        try {
+          const text = await err.response.data.text();
+          const parsed = JSON.parse(text);
+          if (parsed?.message) message = parsed.message;
+        } catch {
+          // ignore
+        }
+      } else if (err?.message) {
+        message = err.message;
+      }
+      toast.error(message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const filteredApplications = useMemo(() => {
+    return applications.filter((app) => {
+      // 1. Status Filter
+      const currentFilter = statusFilter.toUpperCase();
+      const matchesStatus =
+        currentFilter === 'ALL' ||
+        (app.status || '').toUpperCase() === currentFilter;
+
+      if (!matchesStatus) return false;
+
+      // 2. Search Filter
+      const term = searchTerm.trim().toLowerCase();
+      if (!term) return true;
+
+      const studentName = app.student?.fullName?.toLowerCase() || '';
+      const companyName = app.drive?.company?.name?.toLowerCase() || '';
+      const roleName = app.drive?.role?.toLowerCase() || '';
+      const email = app.student?.user?.email?.toLowerCase() || '';
+      const phone = app.student?.phone?.toLowerCase() || '';
+      const department = app.student?.department?.toLowerCase() || '';
+
+      return (
+        studentName.includes(term) ||
+        companyName.includes(term) ||
+        roleName.includes(term) ||
+        email.includes(term) ||
+        phone.includes(term) ||
+        department.includes(term)
+      );
+    });
+  }, [applications, statusFilter, searchTerm]);
 
   if (isLoading && applications.length === 0) {
     return (
@@ -227,6 +320,57 @@ export const Applications: React.FC = () => {
               className="pl-9 text-xs h-9"
             />
           </div>
+
+          {/* Export CSV Dropdown */}
+          <div className="relative" ref={exportMenuRef}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isExporting}
+              onClick={() => setIsExportMenuOpen((prev) => !prev)}
+              className="h-9 px-3 text-xs font-semibold bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs gap-1.5 cursor-pointer disabled:opacity-60"
+            >
+              {isExporting ? (
+                <>
+                  <LoadingSpinner size="sm" />
+                  <span>Exporting...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="h-3.5 w-3.5 text-slate-600" />
+                  <span>Export CSV</span>
+                  <ChevronDown className="h-3 w-3 text-slate-400 ml-0.5" />
+                </>
+              )}
+            </Button>
+
+            {isExportMenuOpen && (
+              <div className="absolute right-0 mt-1.5 w-60 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-20 animate-in fade-in zoom-in-95 duration-100">
+                <button
+                  type="button"
+                  disabled={applications.length === 0 || isExporting}
+                  onClick={() => handleExportCsv('all')}
+                  className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-between transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-700"
+                >
+                  <span className="font-medium">Export All Applications</span>
+                  <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-semibold">
+                    {applications.length}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  disabled={filteredApplications.length === 0 || isExporting}
+                  onClick={() => handleExportCsv('filtered')}
+                  className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-between transition-colors cursor-pointer border-t border-slate-100/80 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-700"
+                >
+                  <span className="font-medium">Export Filtered Applications</span>
+                  <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-semibold">
+                    {filteredApplications.length}
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -234,7 +378,7 @@ export const Applications: React.FC = () => {
       {filteredApplications.length === 0 ? (
         <EmptyState
           icon={FileCheck}
-          title="No Applications Found"
+          title="No applications found"
           description="No candidate applications match your selected status and filter criteria."
         />
       ) : (
