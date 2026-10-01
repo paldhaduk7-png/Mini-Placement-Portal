@@ -24,6 +24,8 @@ export interface TpoApplicationFilter {
   driveId?: string;
   status?: string;
   studentId?: string;
+  search?: string;
+  applicationIds?: string[] | string;
 }
 
 export class ApplicationService {
@@ -881,6 +883,183 @@ export class ApplicationService {
     });
 
     return updatedInterview;
+  }
+
+  /**
+   * TPO: Export applications as a structured CSV string
+   */
+  static async exportApplicationsCsv(filters: TpoApplicationFilter): Promise<string> {
+    const where: any = {};
+
+    if (filters.applicationIds) {
+      const rawIds = Array.isArray(filters.applicationIds)
+        ? filters.applicationIds
+        : filters.applicationIds.split(',').map((id) => id.trim()).filter(Boolean);
+      if (rawIds.length > 0) {
+        where.id = { in: rawIds };
+      }
+    }
+
+    if (filters.driveId?.trim()) {
+      where.driveId = filters.driveId.trim();
+    }
+
+    if (filters.studentId?.trim()) {
+      where.studentId = filters.studentId.trim();
+    }
+
+    if (filters.status && filters.status !== 'ALL') {
+      const normalizedStatus = filters.status.trim().toUpperCase();
+      if (Object.values(ApplicationStatus).includes(normalizedStatus as ApplicationStatus)) {
+        where.status = normalizedStatus as ApplicationStatus;
+      }
+    }
+
+    if (filters.search?.trim()) {
+      const q = filters.search.trim();
+      where.OR = [
+        { student: { fullName: { contains: q, mode: 'insensitive' } } },
+        { student: { user: { email: { contains: q, mode: 'insensitive' } } } },
+        { student: { phone: { contains: q, mode: 'insensitive' } } },
+        { student: { department: { contains: q, mode: 'insensitive' } } },
+        { drive: { role: { contains: q, mode: 'insensitive' } } },
+        { drive: { company: { name: { contains: q, mode: 'insensitive' } } } },
+      ];
+    }
+
+    const applications = await prisma.application.findMany({
+      where,
+      select: {
+        id: true,
+        status: true,
+        remarks: true,
+        isCurrentPlacement: true,
+        appliedAt: true,
+        updatedAt: true,
+        interviews: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
+        student: {
+          select: {
+            id: true,
+            fullName: true,
+            user: { select: { email: true } },
+            phone: true,
+            department: true,
+            studentType: true,
+            currentCgpa: true,
+            activeBacklogs: true,
+            verificationStatus: true,
+            resumeUrl: true,
+          },
+        },
+        drive: {
+          select: {
+            id: true,
+            role: true,
+            ctc: true,
+            jobLocation: true,
+            deadline: true,
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: { appliedAt: 'desc' },
+    });
+
+    if (applications.length === 0) {
+      const error: any = new Error('No applications available to export.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    const headers = [
+      'Student Name',
+      'Student Email',
+      'Student Phone',
+      'Department',
+      'Student Type',
+      'CGPA',
+      'Active Backlogs',
+      'Verification Status',
+      'Company',
+      'Job Role',
+      'CTC (LPA)',
+      'Job Location',
+      'Applied Date',
+      'Application Status',
+      'Placement Status',
+      'Interview Round',
+      'Interview Mode',
+      'Interview Date',
+      'Interview Time',
+      'Interview Location / Meeting Link',
+      'Resume Availability',
+    ];
+
+    const escapeCsv = (val: any): string => {
+      if (val === null || val === undefined) return '';
+      const str = String(val).trim();
+      if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const rows = applications.map((app) => {
+      const latestInterview = app.interviews?.[0];
+      const appliedDateStr = app.appliedAt
+        ? new Date(app.appliedAt).toISOString().split('T')[0]
+        : '';
+      const interviewDateStr = latestInterview?.interviewDate
+        ? new Date(latestInterview.interviewDate).toISOString().split('T')[0]
+        : '-';
+
+      let placementStatus = '-';
+      if (app.status === ApplicationStatus.SELECTED) {
+        placementStatus = app.isCurrentPlacement ? 'CURRENT PLACEMENT' : 'REPLACED';
+      }
+
+      let locationOrLink = '-';
+      if (latestInterview) {
+        locationOrLink = latestInterview.mode === 'ONLINE'
+          ? (latestInterview.meetingLink || '-')
+          : (latestInterview.location || '-');
+      }
+
+      return [
+        escapeCsv(app.student?.fullName || ''),
+        escapeCsv(app.student?.user?.email || ''),
+        escapeCsv(app.student?.phone || ''),
+        escapeCsv(app.student?.department || ''),
+        escapeCsv(app.student?.studentType || ''),
+        escapeCsv(app.student?.currentCgpa != null ? app.student.currentCgpa : ''),
+        escapeCsv(app.student?.activeBacklogs != null ? app.student.activeBacklogs : '0'),
+        escapeCsv(app.student?.verificationStatus || ''),
+        escapeCsv(app.drive?.company?.name || ''),
+        escapeCsv(app.drive?.role || ''),
+        escapeCsv(app.drive?.ctc != null ? `${app.drive.ctc} LPA` : ''),
+        escapeCsv(app.drive?.jobLocation || ''),
+        escapeCsv(appliedDateStr),
+        escapeCsv(app.status),
+        escapeCsv(placementStatus),
+        escapeCsv(latestInterview?.round || '-'),
+        escapeCsv(latestInterview?.mode || '-'),
+        escapeCsv(interviewDateStr),
+        escapeCsv(latestInterview?.interviewTime || '-'),
+        escapeCsv(locationOrLink),
+        escapeCsv(app.student?.resumeUrl ? 'Available' : 'Not Uploaded'),
+      ].join(',');
+    });
+
+    // \uFEFF is UTF-8 Byte Order Mark (BOM) for compatibility with Excel
+    return '\uFEFF' + [headers.join(','), ...rows].join('\r\n');
   }
 }
 

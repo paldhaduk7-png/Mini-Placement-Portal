@@ -53,6 +53,14 @@ tpoApplicationRouter.get(
   ApplicationController.getTpoApplications
 );
 
+// GET /api/tpo/applications/export (MUST be defined before /:id)
+tpoApplicationRouter.get(
+  '/export',
+  authenticateToken,
+  requireRole(Role.TPO),
+  ApplicationController.exportApplicationsCsv
+);
+
 // GET /api/tpo/applications/:id
 tpoApplicationRouter.get(
   '/:id',

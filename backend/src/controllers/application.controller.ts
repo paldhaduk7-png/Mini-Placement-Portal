@@ -182,6 +182,37 @@ export class ApplicationController {
   }
 
   /**
+   * GET /api/tpo/applications/export (or /api/applications/export)
+   * Streams a formatted CSV export of applications (TPO only)
+   */
+  static async exportApplicationsCsv(req: Request, res: Response): Promise<void> {
+    try {
+      const { driveId, status, studentId, search, applicationIds } = req.query;
+
+      const csvData = await ApplicationService.exportApplicationsCsv({
+        driveId: typeof driveId === 'string' ? driveId : undefined,
+        status: typeof status === 'string' ? status : undefined,
+        studentId: typeof studentId === 'string' ? studentId : undefined,
+        search: typeof search === 'string' ? search : undefined,
+        applicationIds: typeof applicationIds === 'string' ? applicationIds : undefined,
+      });
+
+      const today = new Date().toISOString().split('T')[0];
+      const filename = `placement-applications-${today}.csv`;
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.status(200).send(csvData);
+    } catch (error: any) {
+      const statusCode = error.statusCode || 500;
+      res.status(statusCode).json({
+        success: false,
+        message: error.message || 'Failed to export applications.',
+      });
+    }
+  }
+
+  /**
    * GET /api/tpo/applications/:id
    * Returns complete application details by ID for TPO
    */
