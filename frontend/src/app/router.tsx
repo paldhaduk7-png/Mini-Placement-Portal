@@ -4,6 +4,9 @@ import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RoleRoute } from '@/components/auth/RoleRoute';
 import { AppLayout } from '@/components/layout/AppLayout';
 
+// Public Pages
+import { LandingPage } from '@/pages/public/LandingPage';
+
 // Auth Pages
 import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
@@ -40,37 +43,20 @@ import { Unauthorized } from '@/pages/errors/Unauthorized';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 
-// Helper Root Redirect
-const RootRedirect: React.FC = () => {
-  const { user, isAuthenticated, isInitialized, isLoading } = useAppSelector((state) => state.auth);
 
-  if (!isInitialized || isLoading) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center bg-slate-50">
-        <LoadingSpinner size="lg" text="Loading Mini Placement Portal..." />
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (user.role === 'TPO') {
-    return <Navigate to="/tpo/dashboard" replace />;
-  }
-
-  return <Navigate to="/student/dashboard" replace />;
-};
 
 export const router = createBrowserRouter([
   // Public Routes
   {
     path: '/',
-    element: <RootRedirect />,
+    element: <LandingPage />,
   },
   {
     path: '/login',
+    element: <Login />,
+  },
+  {
+    path: '/tpo/login',
     element: <Login />,
   },
   {

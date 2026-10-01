@@ -26,7 +26,9 @@ export const Login: React.FC = () => {
     (state) => state.auth
   );
 
-  const [activeTab, setActiveTab] = useState<'STUDENT' | 'TPO'>('STUDENT');
+  const [activeTab, setActiveTab] = useState<'STUDENT' | 'TPO'>(
+    location.pathname.includes('/tpo/login') ? 'TPO' : 'STUDENT'
+  );
   const [email, setEmail] = useState((location.state as any)?.email || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
