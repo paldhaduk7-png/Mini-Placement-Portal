@@ -44,6 +44,20 @@ export const applicationService = {
     return response.data
   },
 
+  async exportApplicationsCsv(params?: {
+    driveId?: string
+    status?: string
+    studentId?: string
+    search?: string
+    applicationIds?: string
+  }): Promise<Blob> {
+    const response = await api.get('/tpo/applications/export', {
+      params,
+      responseType: 'blob',
+    })
+    return response.data
+  },
+
   async updateStatus(
     id: string,
     status: string,
