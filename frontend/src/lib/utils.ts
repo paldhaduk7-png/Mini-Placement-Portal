@@ -33,3 +33,16 @@ export function formatCurrencyLPA(ctc?: number | null): string {
   if (ctc == null) return 'N/A'
   return `₹ ${ctc} LPA`
 }
+
+export function isDeadlinePassed(deadlineString?: string | Date | null): boolean {
+  if (!deadlineString) return false
+  const d = new Date(deadlineString)
+  if (isNaN(d.getTime())) return false
+  // If stored at midnight UTC (00:00:00), treat deadline as evening 6:00 PM IST (18:00 IST / 12:30 UTC)
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+    const cutoff = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 30, 0, 0))
+    return Date.now() > cutoff.getTime()
+  }
+  return Date.now() > d.getTime()
+}
+

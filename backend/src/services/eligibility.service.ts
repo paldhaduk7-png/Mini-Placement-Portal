@@ -111,9 +111,29 @@ export class EligibilityService {
     }
 
     // 9. Application Deadline Check
-    if (currentTime.getTime() > drive.deadline.getTime()) {
+    // If deadline was saved at midnight UTC (00:00:00.000Z), treat cutoff as evening 6:00 PM IST (18:00 IST / 12:30 UTC) on that date
+    let effectiveDeadline = new Date(drive.deadline);
+    if (
+      effectiveDeadline.getUTCHours() === 0 &&
+      effectiveDeadline.getUTCMinutes() === 0 &&
+      effectiveDeadline.getUTCSeconds() === 0
+    ) {
+      effectiveDeadline = new Date(Date.UTC(
+        effectiveDeadline.getUTCFullYear(),
+        effectiveDeadline.getUTCMonth(),
+        effectiveDeadline.getUTCDate(),
+        12, 30, 0, 0
+      ));
+    }
+
+    if (currentTime.getTime() > effectiveDeadline.getTime()) {
+      const formattedDate = effectiveDeadline.toLocaleDateString('en-IN', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
       reasons.push(
-        `Application deadline has passed on ${drive.deadline.toISOString()}.`
+        `Application deadline passed on ${formattedDate} at 06:00 PM.`
       );
     }
 

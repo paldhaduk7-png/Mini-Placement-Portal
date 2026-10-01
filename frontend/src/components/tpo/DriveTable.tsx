@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatDate, formatCurrencyLPA } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, isDeadlinePassed } from '@/lib/utils';
 import type { RecruitmentDrive } from '@/types/drive';
 import { Users, ExternalLink, Calendar, MapPin, Building2, Pencil } from 'lucide-react';
 
@@ -37,7 +37,7 @@ export const DriveTable: React.FC<DriveTableProps> = ({ drives }) => {
         </TableHeader>
         <TableBody>
           {drives.map((drive, index) => {
-            const isClosed = drive.status === 'COMPLETED' || drive.status === 'CANCELLED' || new Date(drive.deadline) < new Date();
+            const isClosed = drive.status === 'COMPLETED' || drive.status === 'CANCELLED' || isDeadlinePassed(drive.deadline);
             const companyName = drive.company?.name || 'Company';
 
             return (

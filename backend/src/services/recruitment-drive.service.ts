@@ -40,6 +40,34 @@ export interface UpdateDriveInput {
   requiresVerification?: boolean;
 }
 
+export function normalizeDeadline(val: string | Date): Date {
+  const d = new Date(val);
+  // If string matching YYYY-MM-DD
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+    const [y, m, day] = val.trim().split('-').map(Number);
+    // Evening 6:00 PM IST is 12:30:00 UTC
+    return new Date(Date.UTC(y, m - 1, day, 12, 30, 0, 0));
+  }
+  // If date object has midnight UTC (00:00:00.000Z)
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 12, 30, 0, 0));
+  }
+  return d;
+}
+
+export function normalizeDriveDate(val: string | Date): Date {
+  const d = new Date(val);
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+    const [y, m, day] = val.trim().split('-').map(Number);
+    // End of day IST: 23:59:59.999 IST = 18:29:59.999 UTC
+    return new Date(Date.UTC(y, m - 1, day, 18, 29, 59, 999));
+  }
+  if (d.getUTCHours() === 0 && d.getUTCMinutes() === 0 && d.getUTCSeconds() === 0) {
+    return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 18, 29, 59, 999));
+  }
+  return d;
+}
+
 export class RecruitmentDriveService {
   /**
    * Helper to validate academic and date constraints
@@ -64,21 +92,21 @@ export class RecruitmentDriveService {
     let resolvedDeadline: Date | undefined;
 
     if (data.driveDate !== undefined) {
-      resolvedDriveDate = new Date(data.driveDate);
+      resolvedDriveDate = normalizeDriveDate(data.driveDate);
       if (isNaN(resolvedDriveDate.getTime())) {
         throw Object.assign(new Error('driveDate must be a valid date format.'), { statusCode: 400 });
       }
     } else if (existingData) {
-      resolvedDriveDate = existingData.driveDate;
+      resolvedDriveDate = normalizeDriveDate(existingData.driveDate);
     }
 
     if (data.deadline !== undefined) {
-      resolvedDeadline = new Date(data.deadline);
+      resolvedDeadline = normalizeDeadline(data.deadline);
       if (isNaN(resolvedDeadline.getTime())) {
         throw Object.assign(new Error('deadline must be a valid date format.'), { statusCode: 400 });
       }
     } else if (existingData) {
-      resolvedDeadline = existingData.deadline;
+      resolvedDeadline = normalizeDeadline(existingData.deadline);
     }
 
     if (resolvedDriveDate && resolvedDeadline) {
@@ -225,8 +253,8 @@ export class RecruitmentDriveService {
         description: input.description?.trim() || null,
         ctc: Number(input.ctc),
         jobLocation: input.jobLocation?.trim() || null,
-        driveDate: new Date(input.driveDate),
-        deadline: new Date(input.deadline),
+        driveDate: normalizeDriveDate(input.driveDate),
+        deadline: normalizeDeadline(input.deadline),
         status: input.status || DriveStatus.UPCOMING,
         minCgpa: input.minCgpa !== undefined ? Number(input.minCgpa) : 0.0,
         minTenthPercentage: input.minTenthPercentage !== undefined ? Number(input.minTenthPercentage) : 0.0,
@@ -385,8 +413,8 @@ export class RecruitmentDriveService {
     if (input.description !== undefined) dataToUpdate.description = input.description?.trim() || null;
     if (input.ctc !== undefined) dataToUpdate.ctc = Number(input.ctc);
     if (input.jobLocation !== undefined) dataToUpdate.jobLocation = input.jobLocation?.trim() || null;
-    if (input.driveDate !== undefined) dataToUpdate.driveDate = new Date(input.driveDate);
-    if (input.deadline !== undefined) dataToUpdate.deadline = new Date(input.deadline);
+    if (input.driveDate !== undefined) dataToUpdate.driveDate = normalizeDriveDate(input.driveDate);
+    if (input.deadline !== undefined) dataToUpdate.deadline = normalizeDeadline(input.deadline);
     if (input.status !== undefined) dataToUpdate.status = input.status;
     if (input.minCgpa !== undefined) dataToUpdate.minCgpa = Number(input.minCgpa);
     if (input.minTenthPercentage !== undefined) dataToUpdate.minTenthPercentage = Number(input.minTenthPercentage);

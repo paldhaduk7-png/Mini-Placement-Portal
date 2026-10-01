@@ -4,10 +4,10 @@ import { RecruitmentDrive } from '../../types/drive'
 import { Card, CardContent } from '../ui/card'
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
-import { formatCurrencyLPA, formatDate } from '../../lib/utils'
+import { formatCurrencyLPA, formatDate, isDeadlinePassed } from '../../lib/utils'
 
 export function DriveCard({ drive }: { drive: RecruitmentDrive }) {
-  const isExpired = new Date(drive.deadline).getTime() < Date.now()
+  const isExpired = isDeadlinePassed(drive.deadline)
 
   return (
     <Card className="hover:shadow-md transition-all duration-200 border-slate-200/90 group">

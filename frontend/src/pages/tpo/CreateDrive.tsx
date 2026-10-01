@@ -111,14 +111,21 @@ export const CreateDrive: React.FC = () => {
       const allowedStudentTypes: StudentType[] =
         isD2dAllowed === 'Yes' ? ['REGULAR', 'D2D'] : ['REGULAR'];
 
+      // Drive date ends at 23:59:59 local time; application deadline closes at 18:00:00 (6:00 PM)
+      const [dY, dM, dD] = driveDate.split('-').map(Number);
+      const resolvedDriveDate = new Date(dY, dM - 1, dD, 23, 59, 59, 999);
+
+      const [deadY, deadM, deadD] = deadline.split('-').map(Number);
+      const resolvedDeadline = new Date(deadY, deadM - 1, deadD, 18, 0, 0, 0);
+
       const payload = {
         companyId,
         role: role.trim(),
         description: description.trim(),
         ctc: Number(ctc),
         jobLocation: jobLocation.trim() || undefined,
-        driveDate: new Date(driveDate).toISOString(),
-        deadline: new Date(deadline).toISOString(),
+        driveDate: resolvedDriveDate.toISOString(),
+        deadline: resolvedDeadline.toISOString(),
         status: 'UPCOMING' as const,
         minCgpa: Number(minCgpa) || 0,
         minTenthPercentage: Number(minTenthPercentage) || 0,

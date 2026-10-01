@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { formatDate, formatCurrencyLPA } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, isDeadlinePassed } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   Building2,
@@ -424,16 +424,16 @@ export const DriveDetails: React.FC = () => {
                 ) : (
                   <Button
                     onClick={handleApply}
-                    disabled={!isEligible || isApplying || Boolean(drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime())}
+                    disabled={!isEligible || isApplying || isDeadlinePassed(drive?.deadline)}
                     isLoading={isApplying}
                     className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all ${
-                      isEligible && !(drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime())
+                      isEligible && !isDeadlinePassed(drive?.deadline)
                         ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer'
                         : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
                     }`}
                   >
                     <Send className="h-4 w-4 mr-2" />
-                    {drive?.deadline && new Date(drive.deadline).getTime() < new Date().getTime()
+                    {isDeadlinePassed(drive?.deadline)
                       ? 'Applications Closed'
                       : isEligible
                       ? 'Apply Now'

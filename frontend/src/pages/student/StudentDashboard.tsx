@@ -18,7 +18,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { formatDate, formatCurrencyLPA } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, isDeadlinePassed } from '@/lib/utils';
 import {
   Building2,
   Calendar,
@@ -299,7 +299,7 @@ export const StudentDashboard: React.FC = () => {
                 <TableBody>
                   {displayDrives.map((drive) => {
                     const company = drive?.company;
-                    const isClosed = drive?.deadline ? new Date(drive.deadline).getTime() < Date.now() : false;
+                    const isClosed = drive?.deadline ? isDeadlinePassed(drive.deadline) : false;
 
                     return (
                       <TableRow key={drive.id} className="hover:bg-slate-50/50 transition-colors">

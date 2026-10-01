@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { formatDate, formatCurrencyLPA } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, isDeadlinePassed } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -104,7 +104,7 @@ export const DriveDetails: React.FC = () => {
   }
 
   const company = drive?.company;
-  const isClosed = drive?.status === 'COMPLETED' || drive?.status === 'CANCELLED' || (drive?.deadline ? new Date(drive.deadline) < new Date() : false);
+  const isClosed = drive?.status === 'COMPLETED' || drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline);
 
   return (
     <div className="space-y-6">
