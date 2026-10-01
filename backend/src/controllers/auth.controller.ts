@@ -199,6 +199,66 @@ export class AuthController {
     }
   }
 
+  static async tpoLogin(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, password } = req.body;
+
+      if (!email?.trim() || !password) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Email and password are required.',
+        });
+        return;
+      }
+
+      const response = await AuthService.tpoLogin({ email, password });
+      res.status(200).json(response);
+    } catch (error: any) {
+      if (error.statusCode === 401) {
+        res.status(401).json({
+          error: 'Unauthorized',
+          message: error.message,
+        });
+        return;
+      }
+      console.error('TPO Login Error:', error.message || error);
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred during login.',
+      });
+    }
+  }
+
+  static async tpoVerifyOtp(req: Request, res: Response): Promise<void> {
+    try {
+      const { email, otp } = req.body;
+
+      if (!email?.trim() || !otp?.trim()) {
+        res.status(400).json({
+          error: 'Validation Error',
+          message: 'Email and OTP are required.',
+        });
+        return;
+      }
+
+      const response = await AuthService.tpoVerifyOtp(email, otp);
+      res.status(200).json(response);
+    } catch (error: any) {
+      if (error.statusCode) {
+        res.status(error.statusCode).json({
+          error: 'Bad Request',
+          message: error.message,
+        });
+        return;
+      }
+      console.error('TPO Verify OTP Error:', error.message || error);
+      res.status(500).json({
+        error: 'Internal Server Error',
+        message: 'An unexpected error occurred.',
+      });
+    }
+  }
+
   static async me(req: Request, res: Response): Promise<void> {
     // Helper endpoint to verify authenticated user info
     res.status(200).json({

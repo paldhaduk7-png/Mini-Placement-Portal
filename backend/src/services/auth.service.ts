@@ -187,6 +187,109 @@ export class AuthService {
     });
   }
 
+  static async tpoLogin(input: LoginInput) {
+    const email = input.email?.trim().toLowerCase();
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user || user.role !== Role.TPO) {
+      const error: any = new Error('Invalid email or password.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const isPasswordValid = await bcrypt.compare(input.password, user.password);
+    if (!isPasswordValid) {
+      const error: any = new Error('Invalid email or password.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Generate 6 digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+    otpStore.set(email, { otp, expiresAt, verified: false });
+
+    // Send email
+    try {
+      await sendOtpEmail(email, otp);
+    } catch (error) {
+      console.error('Failed to send OTP email:', error);
+      if (config.nodeEnv === 'development') {
+        const fallbackOtp = '123456';
+        otpStore.set(email, { otp: fallbackOtp, expiresAt, verified: false });
+        console.log(`\n=========================================`);
+        console.log(`[DEV MODE] TPO SMTP failed.`);
+        console.log(`[DEV MODE] OTP for ${email} has been set to: ${fallbackOtp}`);
+        console.log(`=========================================\n`);
+      } else {
+        const e: any = new Error('Failed to send email. Please try again later.');
+        e.statusCode = 500;
+        throw e;
+      }
+    }
+
+    return {
+      success: true,
+      message: 'OTP sent to your registered email',
+      requiresOtp: true,
+    };
+  }
+
+  static async tpoVerifyOtp(email: string, otp: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const record = otpStore.get(normalizedEmail);
+
+    if (!record) {
+      const error: any = new Error('No OTP found for this email or it has expired.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (Date.now() > record.expiresAt) {
+      otpStore.delete(normalizedEmail);
+      const error: any = new Error('OTP has expired. Please request a new OTP.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (record.otp !== otp) {
+      const error: any = new Error('Invalid OTP. Please try again.');
+      error.statusCode = 400;
+      throw error;
+    }
+
+    // OTP is valid, get the user
+    const user = await prisma.user.findUnique({
+      where: { email: normalizedEmail },
+    });
+
+    if (!user || user.role !== Role.TPO) {
+      const error: any = new Error('Invalid user or role.');
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Mark as verified and clean up
+    otpStore.delete(normalizedEmail);
+
+    const token = this.generateToken(user.id, user.role);
+
+    return {
+      success: true,
+      message: 'TPO login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
+
   static async forgotPassword(email: string) {
     const normalizedEmail = email.trim().toLowerCase();
     const user = await prisma.user.findUnique({
