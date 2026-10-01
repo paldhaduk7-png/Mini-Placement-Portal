@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import { loginUser, logout } from '@/features/auth/authSlice';
+import authService from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -34,6 +35,8 @@ export const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  const [localIsLoading, setLocalIsLoading] = useState(false);
+
   // If already authenticated with a valid backend session, redirect to role's dashboard
   React.useEffect(() => {
     if (isInitialized && isAuthenticated && user) {
@@ -57,6 +60,22 @@ export const Login: React.FC = () => {
     e.preventDefault();
     if (!email.trim() || !password) {
       toast.error('Please enter both email and password.');
+      return;
+    }
+
+    if (activeTab === 'TPO') {
+      try {
+        setLocalIsLoading(true);
+        const response = await authService.tpoLogin({ email: email.trim(), password });
+        if (response.requiresOtp) {
+          toast.success(response.message || 'Verification code sent to your email.');
+          navigate('/tpo/verify-otp', { state: { email: email.trim(), password } });
+        }
+      } catch (err: any) {
+        toast.error(err.response?.data?.message || err.message || 'Invalid email or password.');
+      } finally {
+        setLocalIsLoading(false);
+      }
       return;
     }
 
@@ -241,7 +260,7 @@ export const Login: React.FC = () => {
 
             <Button
               type="submit"
-              isLoading={isLoading}
+              isLoading={isLoading || localIsLoading}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 rounded-lg shadow-sm mt-3 text-xs h-10"
             >
               Login

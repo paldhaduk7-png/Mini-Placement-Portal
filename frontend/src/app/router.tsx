@@ -12,6 +12,7 @@ import { Login } from '@/pages/auth/Login';
 import { Register } from '@/pages/auth/Register';
 import { ForgotPassword } from '@/pages/auth/ForgotPassword';
 import { VerifyOtp } from '@/pages/auth/VerifyOtp';
+import { TPOVerifyOtp } from '@/pages/auth/TPOVerifyOtp';
 import { ResetPassword } from '@/pages/auth/ResetPassword';
 
 // Student Pages
@@ -70,6 +71,10 @@ export const router = createBrowserRouter([
   {
     path: '/verify-otp',
     element: <VerifyOtp />,
+  },
+  {
+    path: '/tpo/verify-otp',
+    element: <TPOVerifyOtp />,
   },
   {
     path: '/reset-password',
