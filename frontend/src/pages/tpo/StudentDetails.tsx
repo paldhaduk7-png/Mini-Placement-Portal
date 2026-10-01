@@ -17,6 +17,8 @@ import {
   Building,
   Mail,
   Phone,
+  FileText,
+  Eye,
 } from 'lucide-react';
 import type { Student } from '@/types/student';
 
@@ -304,6 +306,48 @@ export const StudentDetails: React.FC = () => {
                 <span className="font-bold text-sm text-slate-900 block mt-0.5">{student.tenthLanguageMarks ?? '-'}</span>
               </div>
             </div>
+          </div>
+
+          {/* Resume Section */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50">
+            <h3 className="text-xs font-bold text-slate-700 uppercase mb-3 flex items-center gap-1.5">
+              <FileText className="h-4 w-4 text-blue-600" />
+              Resume Document
+            </h3>
+            {student.resumeUrl ? (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-lg bg-red-100/80 border border-red-200 flex items-center justify-center text-red-600 font-bold text-xs shrink-0">
+                    PDF
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-slate-800 truncate">
+                      {student.resumeFileName || 'Student_Resume.pdf'}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {student.resumeUploadedAt
+                        ? `Uploaded ${formatDate(student.resumeUploadedAt)}`
+                        : 'PDF Document'}
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href={
+                    student.resumeUrl.startsWith('http://') || student.resumeUrl.startsWith('https://')
+                      ? student.resumeUrl
+                      : `${(import.meta.env.VITE_API_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5000'}${student.resumeUrl.startsWith('/') ? '' : '/'}${student.resumeUrl}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold transition-colors shadow-xs shrink-0"
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  View Resume
+                </a>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500 italic">No resume uploaded by student.</p>
+            )}
           </div>
         </CardContent>
       </Card>

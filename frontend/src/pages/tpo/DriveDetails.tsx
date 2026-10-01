@@ -25,6 +25,7 @@ import {
   MapPin,
   Eye,
   FileCheck,
+  FileText,
 } from 'lucide-react';
 import type { RecruitmentDrive } from '@/types/drive';
 import type { Application, ApplicationStatus } from '@/types/application';
@@ -282,6 +283,7 @@ export const DriveDetails: React.FC = () => {
                         <TableHead className="w-12 text-center text-xs font-semibold uppercase text-slate-500">#</TableHead>
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Student</TableHead>
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Applied Date</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase text-slate-500">Resume</TableHead>
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Status</TableHead>
                         <TableHead className="text-xs font-semibold uppercase text-slate-500">Update Status</TableHead>
                         <TableHead className="text-right text-xs font-semibold uppercase text-slate-500">Profile</TableHead>
@@ -300,6 +302,25 @@ export const DriveDetails: React.FC = () => {
                           </TableCell>
                           <TableCell className="text-xs text-slate-600">
                             {formatDate(app.appliedAt)}
+                          </TableCell>
+                          <TableCell>
+                            {app.student?.resumeUrl ? (
+                              <a
+                                href={
+                                  app.student.resumeUrl.startsWith('http://') || app.student.resumeUrl.startsWith('https://')
+                                    ? app.student.resumeUrl
+                                    : `${(import.meta.env.VITE_API_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5000'}${app.student.resumeUrl.startsWith('/') ? '' : '/'}${app.student.resumeUrl}`
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-semibold transition-colors"
+                              >
+                                <FileText className="h-3.5 w-3.5" />
+                                View Resume
+                              </a>
+                            ) : (
+                              <span className="text-xs text-slate-400 italic">No Resume</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge

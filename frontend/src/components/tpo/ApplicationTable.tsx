@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import type { Application, ApplicationStatus } from '@/types/application';
-import { Eye, Building2 } from 'lucide-react';
+import { Eye, Building2, FileText } from 'lucide-react';
 
 interface ApplicationTableProps {
   applications: Application[];
@@ -49,6 +49,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Company</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Role</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Applied On</TableHead>
+            <TableHead className="text-xs font-semibold uppercase text-slate-500">Resume</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Current Status</TableHead>
             <TableHead className="text-xs font-semibold uppercase text-slate-500">Update Status</TableHead>
             <TableHead className="text-right text-xs font-semibold uppercase text-slate-500">Details</TableHead>
@@ -96,6 +97,25 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                 </TableCell>
                 <TableCell className="text-sm text-slate-600">
                   {formatDate(app.appliedAt)}
+                </TableCell>
+                <TableCell>
+                  {student?.resumeUrl ? (
+                    <a
+                      href={
+                        student.resumeUrl.startsWith('http://') || student.resumeUrl.startsWith('https://')
+                          ? student.resumeUrl
+                          : `${(import.meta.env.VITE_API_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5000'}${student.resumeUrl.startsWith('/') ? '' : '/'}${student.resumeUrl}`
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-semibold transition-colors"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      View Resume
+                    </a>
+                  ) : (
+                    <span className="text-xs text-slate-400 italic">No Resume</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <Badge variant={getStatusBadgeVariant(app.status)}>
