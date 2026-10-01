@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/table';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { formatDate, formatCurrencyLPA, isDeadlinePassed } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, isDeadlinePassed, formatInterviewTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   ArrowLeft,
@@ -414,7 +414,7 @@ export const DriveDetails: React.FC = () => {
                                 <span className="text-[10px] font-medium text-slate-500">
                                   {new Date(app.interviews[0].interviewDate).toLocaleDateString('en-GB', {
                                     day: '2-digit', month: 'short', year: 'numeric'
-                                  })} • {app.interviews[0].interviewTime}
+                                  })} • {formatInterviewTime(app.interviews[0].interviewTime)}
                                 </span>
                                 <span className="text-[10px] text-slate-400">
                                   {app.interviews[0].round} ({app.interviews[0].mode})

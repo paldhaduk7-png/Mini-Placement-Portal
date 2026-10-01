@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
-import { formatDate, formatCurrencyLPA } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, formatInterviewTime } from '@/lib/utils';
 import { FileCheck, Building2, ExternalLink } from 'lucide-react';
 import type { ApplicationStatus } from '@/types/application';
 
@@ -160,7 +160,7 @@ export const Applications: React.FC = () => {
                                 <div className="text-xs font-semibold text-slate-800">
                                   {new Date(app.interviews[0].interviewDate).toLocaleDateString('en-GB', {
                                     day: '2-digit', month: 'short', year: 'numeric'
-                                  })} • {app.interviews[0].interviewTime}
+                                  })} • {formatInterviewTime(app.interviews[0].interviewTime)}
                                 </div>
                                 <div className="text-xs text-slate-600 mt-0.5">
                                   {app.interviews[0].round} ({app.interviews[0].mode})

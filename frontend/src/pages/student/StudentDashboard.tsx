@@ -18,7 +18,7 @@ import {
   TableCell,
 } from '@/components/ui/table';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { formatDate, formatCurrencyLPA, isDeadlinePassed } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, isDeadlinePassed, formatInterviewTime } from '@/lib/utils';
 import {
   Building2,
   Calendar,
@@ -219,7 +219,7 @@ export const StudentDashboard: React.FC = () => {
                         </div>
                         <div>
                           <span className="text-slate-500 font-medium">Time:</span>{' '}
-                          <span className="font-bold text-slate-900">{intv.interviewTime}</span>
+                          <span className="font-bold text-slate-900">{formatInterviewTime(intv.interviewTime)}</span>
                         </div>
                         <div>
                           <span className="text-slate-500 font-medium">Round:</span>{' '}
@@ -477,7 +477,7 @@ export const StudentDashboard: React.FC = () => {
                 <div className="space-y-1">
                   <span className="text-slate-400 font-semibold uppercase tracking-wider text-[10px]">Interview Time</span>
                   <p className="text-sm font-bold text-slate-900">
-                    {selectedInterviewModal.interview.interviewTime}
+                    {formatInterviewTime(selectedInterviewModal.interview.interviewTime)}
                   </p>
                 </div>
               </div>

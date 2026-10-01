@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatInterviewTime } from '@/lib/utils';
 import type { Application, ApplicationStatus, Interview } from '@/types/application';
 import { Eye, Building2, FileText, Calendar, CalendarPlus, CalendarCheck } from 'lucide-react';
 
@@ -155,15 +155,20 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
 
                     {app.status === 'SHORTLISTED' && onScheduleInterview && (
                       app.interviews && app.interviews.length > 0 ? (
-                        <button
-                          type="button"
-                          onClick={() => onScheduleInterview(app, app.interviews![0])}
-                          title="Click to view or edit interview details"
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
-                        >
-                          <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
-                          Interview Scheduled
-                        </button>
+                        <div className="flex flex-col items-start gap-1">
+                          <button
+                            type="button"
+                            onClick={() => onScheduleInterview(app, app.interviews![0])}
+                            title={`Click to view or edit interview details (${formatInterviewTime(app.interviews[0].interviewTime)})`}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
+                          >
+                            <CalendarCheck className="h-3.5 w-3.5 text-emerald-600" />
+                            Interview Scheduled
+                          </button>
+                          <span className="text-[11px] text-slate-600 font-medium pl-0.5">
+                            {formatInterviewTime(app.interviews[0].interviewTime)} • {app.interviews[0].round}
+                          </span>
+                        </div>
                       ) : (
                         <button
                           type="button"

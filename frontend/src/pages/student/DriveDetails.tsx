@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
-import { formatDate, formatCurrencyLPA, isDeadlinePassed } from '@/lib/utils';
+import { formatDate, formatCurrencyLPA, isDeadlinePassed, formatInterviewTime } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   Building2,
@@ -231,7 +231,7 @@ export const DriveDetails: React.FC = () => {
                 <span className="text-sm font-semibold text-slate-800">
                   {new Date(existingApplication.interviews[0].interviewDate).toLocaleDateString('en-GB', {
                     day: '2-digit', month: 'short', year: 'numeric'
-                  })} • {existingApplication.interviews[0].interviewTime}
+                  })} • {formatInterviewTime(existingApplication.interviews[0].interviewTime)}
                 </span>
               </div>
               <div className="bg-white rounded-lg p-3.5 border border-blue-100/50 shadow-sm">

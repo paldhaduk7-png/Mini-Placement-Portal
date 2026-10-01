@@ -46,3 +46,29 @@ export function isDeadlinePassed(deadlineString?: string | Date | null): boolean
   return Date.now() > d.getTime()
 }
 
+export function formatInterviewTime(timeStr?: string | null): string {
+  if (!timeStr || !timeStr.trim()) return 'N/A'
+  const trimmed = timeStr.trim()
+  
+  // Check if it already has AM or PM
+  const match12 = trimmed.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i)
+  if (match12) {
+    let h = parseInt(match12[1], 10)
+    if (h === 0) h = 12
+    if (h > 12) h = h % 12 || 12
+    return `${String(h).padStart(2, '0')}:${match12[2]} ${match12[3].toUpperCase()}`
+  }
+
+  // Check 24-hr format like "17:00", "05:00", "14:30"
+  const match24 = trimmed.match(/^(\d{1,2}):(\d{2})/)
+  if (match24) {
+    const rawH = parseInt(match24[1], 10)
+    const m = match24[2]
+    const period = rawH >= 12 ? 'PM' : 'AM'
+    const h = rawH % 12 === 0 ? 12 : rawH % 12
+    return `${String(h).padStart(2, '0')}:${m} ${period}`
+  }
+
+  return trimmed
+}
+
