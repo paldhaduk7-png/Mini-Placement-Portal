@@ -15,6 +15,7 @@ export interface Application {
   appliedAt: string
   status: ApplicationStatus
   remarks?: string | null
+  isCurrentPlacement?: boolean
   updatedAt: string
 
   student?: Student

@@ -127,6 +127,16 @@ export const Applications: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(app.status)}
+                        {app.status === 'SELECTED' && app.isCurrentPlacement && (
+                          <div className="mt-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded inline-block">
+                            Current Placement
+                          </div>
+                        )}
+                        {app.status === 'SELECTED' && app.isCurrentPlacement === false && (
+                          <div className="mt-1.5 text-[10px] font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded inline-block border border-slate-200">
+                            Previous Placement
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         {drive?.id && (
