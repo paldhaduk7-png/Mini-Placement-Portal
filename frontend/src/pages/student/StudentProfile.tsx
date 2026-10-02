@@ -35,6 +35,7 @@ import {
   Trash2,
   RefreshCw,
   FileCheck,
+  Loader2,
 } from 'lucide-react';
 import { DEPARTMENTS } from '@/constants';
 import type { StudentType } from '@/types/student';
@@ -47,6 +48,7 @@ export const StudentProfile: React.FC = () => {
   const [isEditingRejected, setIsEditingRejected] = useState(false);
   const [isOtherCollege, setIsOtherCollege] = useState(false);
   const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [uploadingResumeName, setUploadingResumeName] = useState('');
 
   // Form State for Steps 1 & 2
   const [formData, setFormData] = useState({
@@ -301,6 +303,7 @@ export const StudentProfile: React.FC = () => {
       toast.error('Resume file size must not exceed 10MB.');
       return;
     }
+    setUploadingResumeName(file.name);
     setIsUploadingResume(true);
     try {
       await dispatch(uploadResume(file)).unwrap();
@@ -309,6 +312,7 @@ export const StudentProfile: React.FC = () => {
       toast.error(err.message || 'Failed to upload resume');
     } finally {
       setIsUploadingResume(false);
+      setUploadingResumeName('');
     }
   };
 
@@ -343,7 +347,27 @@ export const StudentProfile: React.FC = () => {
           Upload your latest resume in PDF format (max 10MB).
         </p>
 
-        {profile?.resumeUrl ? (
+        {isUploadingResume ? (
+          <div className="border-2 border-dashed border-blue-300 rounded-xl p-6 text-center bg-blue-50/50 transition-all">
+            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+            </div>
+            <p className="text-xs font-bold text-slate-800 mb-1">
+              Uploading your resume...
+            </p>
+            {uploadingResumeName ? (
+              <p className="text-[11px] font-semibold text-blue-700 max-w-xs mx-auto truncate mb-2">
+                {uploadingResumeName}
+              </p>
+            ) : null}
+            <p className="text-[11px] text-slate-500 mb-3 max-w-xs mx-auto">
+              Please wait while your PDF document is securely uploaded and verified.
+            </p>
+            <div className="w-48 h-1.5 bg-blue-100 rounded-full mx-auto overflow-hidden">
+              <div className="h-full bg-blue-600 rounded-full w-2/3 animate-pulse" />
+            </div>
+          </div>
+        ) : profile?.resumeUrl ? (
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
             <div className="flex items-center gap-3 min-w-0">
               <div className="h-9 w-9 rounded-md bg-red-100/70 border border-red-200 flex items-center justify-center text-red-600 font-bold text-xs shrink-0">
@@ -371,13 +395,12 @@ export const StudentProfile: React.FC = () => {
               </a>
 
               <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 rounded-md text-xs font-semibold cursor-pointer transition-colors">
-                <RefreshCw className={`h-3.5 w-3.5 ${isUploadingResume ? 'animate-spin' : ''}`} />
+                <RefreshCw className="h-3.5 w-3.5" />
                 Replace
                 <input
                   type="file"
                   accept=".pdf,application/pdf"
                   className="hidden"
-                  disabled={isUploadingResume}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) handleResumeUpload(file);
@@ -389,7 +412,6 @@ export const StudentProfile: React.FC = () => {
               <button
                 type="button"
                 onClick={handleResumeDelete}
-                disabled={isUploadingResume}
                 title="Remove resume"
                 className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
               >
@@ -407,22 +429,12 @@ export const StudentProfile: React.FC = () => {
               A PDF resume is required before submitting your profile.
             </p>
             <label className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold cursor-pointer shadow-xs transition-colors">
-              {isUploadingResume ? (
-                <>
-                  <LoadingSpinner size="sm" className="border-white" />
-                  Uploading...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4" />
-                  Choose File (PDF)
-                </>
-              )}
+              <Upload className="h-4 w-4" />
+              Choose File (PDF)
               <input
                 type="file"
                 accept=".pdf,application/pdf"
                 className="hidden"
-                disabled={isUploadingResume}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) handleResumeUpload(file);
