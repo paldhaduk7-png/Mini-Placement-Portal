@@ -55,7 +55,7 @@ export const StudentProfile: React.FC = () => {
     phone: '',
     dob: '',
     studentType: 'REGULAR' as StudentType,
-    department: 'Computer Science and Engineering',
+    department: 'Computer Engineering',
     tenthPercentage: '',
     tenthMathsMarks: '',
     tenthScienceMarks: '',
@@ -88,7 +88,9 @@ export const StudentProfile: React.FC = () => {
         phone: profile.phone || '',
         dob: profile.dob ? new Date(profile.dob).toISOString().split('T')[0] : '',
         studentType: profile.studentType || 'REGULAR',
-        department: profile.department || 'Computer Science and Engineering',
+        department: DEPARTMENTS.includes(profile.department as any)
+          ? profile.department
+          : 'Computer Engineering',
         tenthPercentage: profile.tenthPercentage ? String(profile.tenthPercentage) : '',
         tenthMathsMarks: profile.tenthMathsMarks ? String(profile.tenthMathsMarks) : '',
         tenthScienceMarks: profile.tenthScienceMarks ? String(profile.tenthScienceMarks) : '',

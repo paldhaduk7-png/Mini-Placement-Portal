@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { StudentType } from '@prisma/client';
 import { AuthService } from '../services/auth.service';
+import { VALID_DEPARTMENTS, DEFAULT_DEPARTMENT } from '../constants/departments';
 
 export class AuthController {
   static async register(req: Request, res: Response): Promise<void> {
@@ -71,7 +72,11 @@ export class AuthController {
         studentType === StudentType.D2D ? StudentType.D2D : StudentType.REGULAR;
 
       // 5. Academic details (defaulted safely if registering initially before profile wizard)
-      const effectiveDept = department?.trim() || 'General';
+      const trimmedDept = department?.trim();
+      const effectiveDept =
+        trimmedDept && VALID_DEPARTMENTS.includes(trimmedDept as any)
+          ? trimmedDept
+          : DEFAULT_DEPARTMENT;
       const effectiveCgpa =
         currentCgpa !== undefined && currentCgpa !== null ? Number(currentCgpa) : 0;
       const effectiveActiveB =
