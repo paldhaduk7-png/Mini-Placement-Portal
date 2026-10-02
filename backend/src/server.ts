@@ -3,12 +3,35 @@ import app from './app';
 import prisma from './lib/prisma';
 import { ApplicationService } from './services/application.service';
 import http from 'http';
+import dns from 'dns/promises';
 
 const PORT = config.port || 5000;
 let server: http.Server;
 
+async function resolveIpv4DatabaseUrl() {
+  const dbUrl = process.env.DATABASE_URL;
+  if (!dbUrl) return;
+
+  try {
+    const parsed = new URL(dbUrl);
+    // If hostname is a domain name (not already an IPv4 address), resolve to IPv4 to prevent IPv6/NAT64 timeouts
+    if (parsed.hostname && !/^(\d{1,3}\.){3}\d{1,3}$/.test(parsed.hostname) && parsed.hostname !== 'localhost') {
+      const lookup = await dns.lookup(parsed.hostname, { family: 4 });
+      if (lookup?.address) {
+        parsed.hostname = lookup.address;
+        process.env.DATABASE_URL = parsed.toString();
+        console.log(`[DB] Resolved IPv4 host: ${lookup.address}`);
+      }
+    }
+  } catch (err: any) {
+    console.warn('[DB] IPv4 DNS resolution warning:', err?.message || err);
+  }
+}
+
 async function startServer() {
   try {
+    await resolveIpv4DatabaseUrl();
+
     // Verify database connection before starting server
     await prisma.$queryRaw`SELECT 1`;
     console.log('Database connected successfully');
