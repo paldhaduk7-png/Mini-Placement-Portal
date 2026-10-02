@@ -31,14 +31,15 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  RefreshCw,
 } from 'lucide-react';
 import type { RecruitmentDrive } from '@/types/drive';
-import type { PlacementStatus, Application, Interview } from '@/types/application';
+import type { PlacementStatus, Application, Interview, ApplicationStatus } from '@/types/application';
 
 export const StudentDashboard: React.FC = () => {
   const dispatch = useAppDispatch();
   const { profile, isLoading: isProfileLoading } = useAppSelector((state) => state.student);
-  const { applications, isLoading: isAppsLoading } = useAppSelector((state) => state.application);
+  const { applications, isLoading: isAppsLoading, error: appsError } = useAppSelector((state) => state.application);
   const { user } = useAppSelector((state) => state.auth);
 
   const [availableDrives, setAvailableDrives] = useState<RecruitmentDrive[]>([]);
@@ -78,6 +79,58 @@ export const StudentDashboard: React.FC = () => {
 
   const studentName = profile?.fullName || user?.fullName || 'Student';
   const appliedCount = applications.length;
+
+  const totalApps = applications.length;
+  const pendingCount = applications.filter((app) => app.status === 'APPLIED').length;
+  const shortlistedCount = applications.filter(
+    (app) => app.status === 'SHORTLISTED' || app.status === 'INTERVIEW'
+  ).length;
+  const selectedCount = applications.filter((app) => app.status === 'SELECTED').length;
+  const rejectedCount = applications.filter((app) => app.status === 'REJECTED').length;
+
+  const recentApplications = [...applications]
+    .sort((a, b) => new Date(b.appliedAt).getTime() - new Date(a.appliedAt).getTime())
+    .slice(0, 5);
+
+  const selectedApps = applications.filter((a) => a.status === 'SELECTED');
+  const currentSelectedApp =
+    selectedApps.find((a) => a.isCurrentPlacement) ||
+    (selectedApps.length > 0 ? selectedApps[0] : null);
+
+  const getApplicationStatusBadge = (status: ApplicationStatus) => {
+    switch (status) {
+      case 'SELECTED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Selected
+          </span>
+        );
+      case 'SHORTLISTED':
+      case 'INTERVIEW':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+            {status === 'INTERVIEW' ? 'Interview' : 'Shortlisted'}
+          </span>
+        );
+      case 'REJECTED':
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
+            Rejected
+          </span>
+        );
+      case 'APPLIED':
+      default:
+        return (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+            Applied
+          </span>
+        );
+    }
+  };
 
   const getProfileBadge = () => {
     if (!profile) return <Badge variant="secondary">Unknown</Badge>;
@@ -281,16 +334,38 @@ export const StudentDashboard: React.FC = () => {
 
         {/* Card 3: My Applications */}
         <Card className="border-slate-200 shadow-sm hover:shadow transition-shadow">
-          <CardContent className="p-5 flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">My Applications</p>
-              <h3 className="text-3xl font-extrabold text-slate-900 mt-1">
-                {appliedCount}
-              </h3>
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total Applications</p>
+                <h3 className="text-3xl font-extrabold text-slate-900 mt-1">
+                  {totalApps}
+                </h3>
+              </div>
+              <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                <FileCheck className="h-6 w-6" />
+              </div>
             </div>
-            <div className="h-12 w-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
-              <FileCheck className="h-6 w-6" />
-            </div>
+            {totalApps > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-4 gap-1 text-center">
+                <div title="Applied / Pending">
+                  <span className="block text-[10px] font-semibold text-amber-600 uppercase tracking-tight">Pending</span>
+                  <span className="text-xs font-bold text-slate-800">{pendingCount}</span>
+                </div>
+                <div title="Shortlisted">
+                  <span className="block text-[10px] font-semibold text-blue-600 uppercase tracking-tight">Shortlist</span>
+                  <span className="text-xs font-bold text-slate-800">{shortlistedCount}</span>
+                </div>
+                <div title="Selected">
+                  <span className="block text-[10px] font-semibold text-emerald-600 uppercase tracking-tight">Selected</span>
+                  <span className="text-xs font-bold text-slate-800">{selectedCount}</span>
+                </div>
+                <div title="Rejected">
+                  <span className="block text-[10px] font-semibold text-rose-600 uppercase tracking-tight">Rejected</span>
+                  <span className="text-xs font-bold text-slate-800">{rejectedCount}</span>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -327,6 +402,157 @@ export const StudentDashboard: React.FC = () => {
           </Button>
         </div>
       )}
+
+      {/* Application Status / Recent Applications Section */}
+      <Card className="border-slate-200 shadow-sm">
+        <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 text-base">Application Status</h3>
+              {totalApps > 0 && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                  {totalApps} {totalApps === 1 ? 'Application' : 'Applications'}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Live status of your submitted recruitment drive applications
+            </p>
+          </div>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                dispatch(fetchMyApplications());
+                loadPlacementStatus();
+              }}
+              disabled={isAppsLoading}
+              className="text-xs h-8 text-slate-600 hover:text-slate-900 gap-1.5"
+              title="Refresh application status"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isAppsLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button variant="ghost" size="sm" asChild className="text-xs text-blue-600 hover:text-blue-700">
+              <Link to="/student/applications" className="flex items-center gap-1 font-semibold">
+                View All
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        <CardContent className="p-0">
+          {isAppsLoading && applications.length === 0 ? (
+            <div className="p-8 flex items-center justify-center">
+              <LoadingSpinner size="md" text="Loading application status..." />
+            </div>
+          ) : appsError && applications.length === 0 ? (
+            <div className="p-8 text-center">
+              <AlertCircle className="h-10 w-10 text-rose-500 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-700">Failed to load application status</p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">{appsError}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => dispatch(fetchMyApplications())}
+                className="text-xs"
+              >
+                Try Again
+              </Button>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="p-8 text-center">
+              <FileCheck className="h-10 w-10 text-slate-300 mx-auto mb-2" />
+              <p className="text-sm font-semibold text-slate-700">
+                You haven't applied to any recruitment drives yet.
+              </p>
+              <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1 mb-4">
+                Explore open recruitment drives matching your profile and submit your applications.
+              </p>
+              <Button size="sm" asChild className="bg-blue-600 hover:bg-blue-700 text-white text-xs">
+                <Link to="/student/drives">Browse Recruitment Drives</Link>
+              </Button>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {recentApplications.map((app) => {
+                const drive = app.drive;
+                const company = drive?.company;
+                const isCurrent =
+                  app.status === 'SELECTED' &&
+                  (app.isCurrentPlacement ?? currentSelectedApp?.id === app.id);
+
+                return (
+                  <div
+                    key={app.id}
+                    className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/60 transition-colors"
+                  >
+                    <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                      {company?.imageUrl ? (
+                        <img
+                          src={company.imageUrl}
+                          alt={company.name || 'Company'}
+                          className="h-10 w-10 rounded-lg object-contain border border-slate-100 p-1 bg-white shrink-0"
+                        />
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700 font-bold text-sm border border-blue-100 shrink-0">
+                          <Building2 className="h-5 w-5" />
+                        </div>
+                      )}
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-bold text-slate-900 text-sm sm:text-base truncate">
+                            {company?.name || 'Company'}
+                          </h4>
+                          {isCurrent && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">
+                              CURRENT PLACEMENT
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
+                          <span className="font-medium text-slate-800">
+                            {drive?.role || 'Role N/A'}
+                          </span>
+                          {drive?.ctc != null && (
+                            <>
+                              <span className="text-slate-300">•</span>
+                              <span className="font-semibold text-slate-700">
+                                {formatCurrencyLPA(drive.ctc)}
+                              </span>
+                            </>
+                          )}
+                          <span className="text-slate-300">•</span>
+                          <span className="text-slate-500">
+                            Applied on {formatDate(app.appliedAt)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between sm:justify-end gap-3.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                      <div>{getApplicationStatusBadge(app.status)}</div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        asChild
+                        className="text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 gap-1 font-semibold h-8 px-2.5"
+                      >
+                        <Link to="/student/applications">
+                          View Details
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Latest Recruitment Drives Section */}
       <Card className="border-slate-200 shadow-sm">
