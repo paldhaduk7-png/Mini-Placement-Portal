@@ -525,7 +525,7 @@ export const StudentProfile: React.FC = () => {
         updatePayload.twelfthPercentage = null;
         updatePayload.d2dCgpa = Number(formData.d2dCgpa);
         updatePayload.diplomaCollege = formData.diplomaCollege.trim();
-        updatePayload.diplomaBranch = formData.diplomaBranch.trim() || formData.department;
+        updatePayload.diplomaBranch = formData.diplomaBranch.trim() || null;
       }
 
       await dispatch(updateStudentProfile(updatePayload)).unwrap();
@@ -694,15 +694,11 @@ export const StudentProfile: React.FC = () => {
                   <dt className="text-slate-500 font-medium">DOB:</dt>
                   <dd className="font-semibold text-slate-800">{formatDate(profile.dob)}</dd>
                 </div>
-                <div className="flex justify-between py-1 border-b border-slate-50">
+                <div className="flex justify-between py-1">
                   <dt className="text-slate-500 font-medium">Student Type:</dt>
                   <dd className="font-bold text-blue-600">
                     {profile.studentType === 'REGULAR' ? 'Regular' : 'D2D'}
                   </dd>
-                </div>
-                <div className="flex justify-between py-1">
-                  <dt className="text-slate-500 font-medium">Branch / Department:</dt>
-                  <dd className="font-bold text-slate-900">{profile.department || 'N/A'}</dd>
                 </div>
               </dl>
             </CardContent>
@@ -746,12 +742,6 @@ export const StudentProfile: React.FC = () => {
                       <dt className="text-slate-500 font-medium">Diploma CGPA:</dt>
                       <dd className="font-bold text-slate-900">{profile.d2dCgpa ?? 'N/A'}</dd>
                     </div>
-                    {profile.diplomaBranch && (
-                      <div className="flex justify-between py-1 border-b border-slate-50">
-                        <dt className="text-slate-500 font-medium">Diploma Branch:</dt>
-                        <dd className="font-bold text-slate-900">{profile.diplomaBranch}</dd>
-                      </div>
-                    )}
                     <div className="flex justify-between py-1 border-b border-slate-50">
                       <dt className="text-slate-500 font-medium">Diploma College:</dt>
                       <dd className="font-medium text-slate-800 truncate max-w-[180px]">
