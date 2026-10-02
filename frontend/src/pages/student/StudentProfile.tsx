@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import {
@@ -49,6 +49,7 @@ export const StudentProfile: React.FC = () => {
   const [isOtherCollege, setIsOtherCollege] = useState(false);
   const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [uploadingResumeName, setUploadingResumeName] = useState('');
+  const initializedStudentIdRef = useRef<string | null>(null);
 
   // Form State for Steps 1 & 2
   const [formData, setFormData] = useState({
@@ -77,58 +78,81 @@ export const StudentProfile: React.FC = () => {
     profilePhoto: '',
   });
 
+  const populateFormFromProfile = useCallback((p: typeof profile) => {
+    if (!p) return;
+    const inferredGujarati = (() => {
+      if (p.tenthTotalMarks && (p.tenthMaxMarks === 600 || !p.tenthMaxMarks)) {
+        const sumOther =
+          (p.tenthMathsMarks || 0) +
+          (p.tenthScienceMarks || 0) +
+          (p.tenthEnglishMarks || 0) +
+          (p.tenthSocialScienceMarks || 0) +
+          (p.tenthLanguageMarks || 0);
+        const diff = Math.round(p.tenthTotalMarks - sumOther);
+        if (diff >= 0 && diff <= 100) return String(diff);
+      }
+      return '';
+    })();
+
+    setFormData({
+      fullName: p.fullName || '',
+      email: p.user?.email || '',
+      phone: p.phone || '',
+      dob: p.dob ? new Date(p.dob).toISOString().split('T')[0] : '',
+      studentType: p.studentType || 'REGULAR',
+      department: DEPARTMENTS.includes(p.department as any)
+        ? p.department
+        : 'Computer Engineering',
+      tenthPercentage: p.tenthPercentage ? String(p.tenthPercentage) : '',
+      tenthMathsMarks: p.tenthMathsMarks ? String(p.tenthMathsMarks) : '',
+      tenthScienceMarks: p.tenthScienceMarks ? String(p.tenthScienceMarks) : '',
+      tenthEnglishMarks: p.tenthEnglishMarks ? String(p.tenthEnglishMarks) : '',
+      tenthSocialScienceMarks: p.tenthSocialScienceMarks ? String(p.tenthSocialScienceMarks) : '',
+      tenthGujaratiMarks: inferredGujarati,
+      tenthLanguageMarks: p.tenthLanguageMarks ? String(p.tenthLanguageMarks) : '',
+      tenthTotalMarks: p.tenthTotalMarks ? String(p.tenthTotalMarks) : '',
+      tenthMaxMarks: '600',
+      twelfthPercentage: p.twelfthPercentage ? String(p.twelfthPercentage) : '',
+      currentCgpa: p.currentCgpa ? String(p.currentCgpa) : '',
+      activeBacklogs: p.activeBacklogs !== undefined ? String(p.activeBacklogs) : '0',
+      totalBacklogs: p.totalBacklogs !== undefined ? String(p.totalBacklogs) : '0',
+      d2dCgpa: p.d2dCgpa ? String(p.d2dCgpa) : '',
+      diplomaBranch: p.diplomaBranch || '',
+      diplomaCollege: p.diplomaCollege || '',
+      profilePhoto: p.profilePhoto || '',
+    });
+    if (
+      p.diplomaCollege &&
+      ![
+        'Government Polytechnic, Ahmedabad',
+        'L.J. Polytechnic, Ahmedabad',
+        'Government Polytechnic for Girls, Ahmedabad',
+        'R.C. Technical Institute, Ahmedabad',
+        'Silver Oak Polytechnic, Ahmedabad',
+        'Government Polytechnic, Gandhinagar',
+        'Government Polytechnic, Vadodara',
+        'Government Polytechnic, Rajkot',
+        'Government Polytechnic, Surat',
+        'Parul Polytechnic Institute, Vadodara',
+      ].includes(p.diplomaCollege)
+    ) {
+      setIsOtherCollege(true);
+    } else {
+      setIsOtherCollege(false);
+    }
+  }, []);
+
   useEffect(() => {
     dispatch(fetchStudentProfile());
   }, [dispatch]);
 
-  // Populate form data once profile loads
+  // Populate form data once profile initially loads (do NOT overwrite active user input on resume upload/delete)
   useEffect(() => {
-    if (profile) {
-      setFormData({
-        fullName: profile.fullName || '',
-        email: profile.user?.email || '',
-        phone: profile.phone || '',
-        dob: profile.dob ? new Date(profile.dob).toISOString().split('T')[0] : '',
-        studentType: profile.studentType || 'REGULAR',
-        department: DEPARTMENTS.includes(profile.department as any)
-          ? profile.department
-          : 'Computer Engineering',
-        tenthPercentage: profile.tenthPercentage ? String(profile.tenthPercentage) : '',
-        tenthMathsMarks: profile.tenthMathsMarks ? String(profile.tenthMathsMarks) : '',
-        tenthScienceMarks: profile.tenthScienceMarks ? String(profile.tenthScienceMarks) : '',
-        tenthEnglishMarks: profile.tenthEnglishMarks ? String(profile.tenthEnglishMarks) : '',
-        tenthSocialScienceMarks: profile.tenthSocialScienceMarks ? String(profile.tenthSocialScienceMarks) : '',
-        tenthGujaratiMarks: '', // DB limitation: No dedicated field for Gujarati yet
-        tenthLanguageMarks: profile.tenthLanguageMarks ? String(profile.tenthLanguageMarks) : '',
-        tenthTotalMarks: profile.tenthTotalMarks ? String(profile.tenthTotalMarks) : '',
-        tenthMaxMarks: '600',
-        twelfthPercentage: profile.twelfthPercentage ? String(profile.twelfthPercentage) : '',
-        currentCgpa: profile.currentCgpa ? String(profile.currentCgpa) : '',
-        activeBacklogs: profile.activeBacklogs !== undefined ? String(profile.activeBacklogs) : '0',
-        totalBacklogs: profile.totalBacklogs !== undefined ? String(profile.totalBacklogs) : '0',
-        d2dCgpa: profile.d2dCgpa ? String(profile.d2dCgpa) : '',
-        diplomaBranch: profile.diplomaBranch || '',
-        diplomaCollege: profile.diplomaCollege || '',
-        profilePhoto: profile.profilePhoto || '',
-      });
-      if (profile.diplomaCollege && ![
-        "Government Polytechnic, Ahmedabad",
-        "L.J. Polytechnic, Ahmedabad",
-        "Government Polytechnic for Girls, Ahmedabad",
-        "R.C. Technical Institute, Ahmedabad",
-        "Silver Oak Polytechnic, Ahmedabad",
-        "Government Polytechnic, Gandhinagar",
-        "Government Polytechnic, Vadodara",
-        "Government Polytechnic, Rajkot",
-        "Government Polytechnic, Surat",
-        "Parul Polytechnic Institute, Vadodara"
-      ].includes(profile.diplomaCollege)) {
-        setIsOtherCollege(true);
-      } else {
-        setIsOtherCollege(false);
-      }
+    if (profile && initializedStudentIdRef.current !== profile.id) {
+      initializedStudentIdRef.current = profile.id;
+      populateFormFromProfile(profile);
     }
-  }, [profile]);
+  }, [profile, populateFormFromProfile]);
 
   // Auto-calculate 10th Total and Percentage
   useEffect(() => {
@@ -511,6 +535,7 @@ export const StudentProfile: React.FC = () => {
       if (submitStudentProfile.fulfilled.match(resultAction)) {
         toast.success('Profile submitted and locked successfully! Sent to TPO for verification.');
         setIsEditingRejected(false);
+        initializedStudentIdRef.current = null;
         await dispatch(fetchStudentProfile());
       } else {
         toast.error((resultAction.payload as string) || 'Failed to submit profile');
@@ -609,6 +634,9 @@ export const StudentProfile: React.FC = () => {
             </div>
             <Button
               onClick={() => {
+                if (profile) {
+                  populateFormFromProfile(profile);
+                }
                 setIsEditingRejected(true);
                 setActiveStep(1);
               }}

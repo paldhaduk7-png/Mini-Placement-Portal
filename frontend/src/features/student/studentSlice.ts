@@ -135,31 +135,25 @@ export const studentSlice = createSlice({
 
       // Upload Resume
       .addCase(uploadResume.pending, (state) => {
-        state.isSubmitting = true
         state.error = null
       })
       .addCase(uploadResume.fulfilled, (state, action: PayloadAction<Student>) => {
-        state.isSubmitting = false
-        state.profile = action.payload
+        state.profile = state.profile ? { ...state.profile, ...action.payload } : action.payload
         state.error = null
       })
       .addCase(uploadResume.rejected, (state, action) => {
-        state.isSubmitting = false
         state.error = (action.payload as string) || 'Failed to upload resume'
       })
 
       // Delete Resume
       .addCase(deleteResume.pending, (state) => {
-        state.isSubmitting = true
         state.error = null
       })
       .addCase(deleteResume.fulfilled, (state, action: PayloadAction<Student>) => {
-        state.isSubmitting = false
-        state.profile = action.payload
+        state.profile = state.profile ? { ...state.profile, ...action.payload } : action.payload
         state.error = null
       })
       .addCase(deleteResume.rejected, (state, action) => {
-        state.isSubmitting = false
         state.error = (action.payload as string) || 'Failed to delete resume'
       })
   },
