@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
-import { loginUser, logout } from '@/features/auth/authSlice';
+import { loginUser, logout, setCredentials } from '@/features/auth/authSlice';
 import authService from '@/services/auth.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,10 +68,9 @@ export const Login: React.FC = () => {
       try {
         setLocalIsLoading(true);
         const response = await authService.tpoLogin({ email: email.trim(), password });
-        if (response.requiresOtp) {
-          toast.success(response.message || 'Verification code sent to your email.');
-          navigate('/tpo/verify-otp', { state: { email: email.trim(), password } });
-        }
+        dispatch(setCredentials({ user: response.user, token: response.token }));
+        toast.success('Welcome back!');
+        navigate('/tpo/dashboard', { replace: true });
       } catch (err: any) {
         toast.error(err.response?.data?.message || err.message || 'Invalid email or password.');
       } finally {

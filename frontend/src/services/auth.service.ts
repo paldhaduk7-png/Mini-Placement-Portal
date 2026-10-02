@@ -42,8 +42,8 @@ export const authService = {
     return response.data
   },
 
-  async tpoLogin(credentials: { email: string; password: string }): Promise<{ success: boolean; message: string; requiresOtp: boolean }> {
-    const response = await api.post<{ success: boolean; message: string; requiresOtp: boolean }>('/auth/tpo/login', credentials)
+  async tpoLogin(credentials: { email: string; password: string }): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/tpo/login', credentials)
     return response.data
   },
 

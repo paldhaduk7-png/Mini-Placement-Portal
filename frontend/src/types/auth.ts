@@ -23,6 +23,7 @@ export interface AuthState {
 }
 
 export interface LoginResponse {
+  success?: boolean
   message: string
   token: string
   user: User

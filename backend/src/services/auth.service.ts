@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken';
 import { Role, StudentType, VerificationStatus } from '@prisma/client';
 import prisma from '../lib/prisma';
 import { config } from '../config/env';
-import { sendOtpEmail, sendTpoOtpEmail } from '../lib/mailer';
+import { sendOtpEmail } from '../lib/mailer';
 
 // In-memory store for OTPs. Key is email.
 // In production, this should ideally be in Redis or database.
@@ -207,43 +207,18 @@ export class AuthService {
       throw error;
     }
 
-    // Generate 6 digit OTP
-    let otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
-
-    // Fallback for development without SMTP
-    if (!config.mailUsername) {
-      otp = '123456';
-    }
-
-    otpStore.set(email, { otp, expiresAt, verified: false });
-
-    // Send email
-    try {
-      await sendTpoOtpEmail(email, otp);
-    } catch (error: any) {
-      const errCode = error?.code || 'UNKNOWN';
-      const errMsg = error?.message || 'SMTP delivery failure';
-      console.error(`Failed to send OTP email: [${errCode}] ${errMsg}`);
-
-      if (config.nodeEnv === 'development') {
-        const fallbackOtp = '123456';
-        otpStore.set(email, { otp: fallbackOtp, expiresAt, verified: false });
-        console.log(`\n=========================================`);
-        console.log(`[DEV MODE] TPO SMTP failed.`);
-        console.log(`[DEV MODE] OTP for ${email} has been set to: ${fallbackOtp}`);
-        console.log(`=========================================\n`);
-      } else {
-        const e: any = new Error('Failed to send email. Please try again later.');
-        e.statusCode = 500;
-        throw e;
-      }
-    }
+    // Generate JWT
+    const token = this.generateToken(user.id, user.role);
 
     return {
       success: true,
-      message: 'OTP sent to your registered email',
-      requiresOtp: true,
+      message: 'Login successful',
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      },
     };
   }
 

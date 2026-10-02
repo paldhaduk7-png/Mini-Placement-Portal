@@ -64,11 +64,10 @@ export const TPOVerifyOtp: React.FC = () => {
     try {
       setLocalIsLoading(true);
       const response = await authService.tpoLogin({ email, password });
-      if (response.requiresOtp) {
-        setCountdown(300);
-        setResendCooldown(30);
-        setIsResendDisabled(true);
-        toast.success('New verification code sent to your email.');
+      if (response.token) {
+        dispatch(setCredentials({ user: response.user, token: response.token }));
+        toast.success('Logged in successfully.');
+        navigate('/tpo/dashboard', { replace: true });
       }
     } catch (err: any) {
       toast.error(err.response?.data?.message || err.message || 'Failed to resend OTP.');
