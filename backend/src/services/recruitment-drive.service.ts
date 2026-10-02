@@ -68,7 +68,94 @@ export function normalizeDriveDate(val: string | Date): Date {
   return d;
 }
 
+/**
+ * Convert any Date or date string to a date-only 'YYYY-MM-DD' string in Asia/Kolkata (IST).
+ * Using date-only string comparison prevents timezone differences or hour offsets from causing
+ * a drive to change status prematurely or unexpectedly.
+ */
+export function toDateOnlyString(val: Date | string | null | undefined): string {
+  if (!val) return '';
+  if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(val.trim())) {
+    return val.trim();
+  }
+  const d = new Date(val);
+  if (isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d);
+}
+
+/**
+ * Calculates recruitment drive status automatically based on drive dates:
+ * - If current date is BEFORE the drive start date (deadline):
+ *     status = "UPCOMING"
+ * - If current date is ON or AFTER the drive start date (deadline)
+ *   AND current date is ON or BEFORE the drive end date (driveDate):
+ *     status = "ONGOING"
+ * - If current date is AFTER the drive end date (driveDate):
+ *     status = "COMPLETED"
+ * - If drive was explicitly CANCELLED, preserves CANCELLED status.
+ */
+export function calculateDriveStatus(
+  startDate: Date | string,
+  endDate: Date | string,
+  currentStatus?: DriveStatus
+): DriveStatus {
+  if (currentStatus === DriveStatus.CANCELLED) {
+    return DriveStatus.CANCELLED;
+  }
+
+  const todayStr = toDateOnlyString(new Date());
+  const startStr = toDateOnlyString(startDate);
+  const endStr = toDateOnlyString(endDate);
+
+  if (!startStr || !endStr) {
+    return currentStatus || DriveStatus.UPCOMING;
+  }
+
+  // If current date is BEFORE the drive start date:
+  if (todayStr < startStr) {
+    return DriveStatus.UPCOMING;
+  }
+
+  // If current date is ON or AFTER the drive start date
+  // AND current date is ON or BEFORE the drive end date:
+  if (todayStr >= startStr && todayStr <= endStr) {
+    return DriveStatus.ONGOING;
+  }
+
+  // If current date is AFTER the drive end date:
+  return DriveStatus.COMPLETED;
+}
+
 export class RecruitmentDriveService {
+  /**
+   * Automatically synchronize recruitment drive statuses in the database based on their current dates
+   */
+  static async syncAllDriveStatuses(): Promise<void> {
+    try {
+      const drives = await prisma.recruitmentDrive.findMany({
+        where: { status: { not: DriveStatus.CANCELLED } },
+        select: { id: true, deadline: true, driveDate: true, status: true },
+      });
+
+      for (const d of drives) {
+        const calculated = calculateDriveStatus(d.deadline, d.driveDate, d.status);
+        if (d.status !== calculated) {
+          await prisma.recruitmentDrive.update({
+            where: { id: d.id },
+            data: { status: calculated },
+          });
+        }
+      }
+    } catch (err: any) {
+      console.warn('[RecruitmentDriveService] syncAllDriveStatuses warning:', err?.message || err);
+    }
+  }
+
   /**
    * Helper to validate academic and date constraints
    */
@@ -255,7 +342,7 @@ export class RecruitmentDriveService {
         jobLocation: input.jobLocation?.trim() || null,
         driveDate: normalizeDriveDate(input.driveDate),
         deadline: normalizeDeadline(input.deadline),
-        status: input.status || DriveStatus.UPCOMING,
+        status: calculateDriveStatus(input.deadline, input.driveDate),
         minCgpa: input.minCgpa !== undefined ? Number(input.minCgpa) : 0.0,
         minTenthPercentage: input.minTenthPercentage !== undefined ? Number(input.minTenthPercentage) : 0.0,
         minTwelfthPercentage: input.minTwelfthPercentage !== undefined && input.minTwelfthPercentage !== null ? Number(input.minTwelfthPercentage) : null,
@@ -294,6 +381,7 @@ export class RecruitmentDriveService {
       where.AND.push({ companyId: filters.companyId.trim() });
     }
 
+    let filterStatus: DriveStatus | undefined;
     if (filters?.status?.trim()) {
       const validStatuses = Object.values(DriveStatus);
       const uppercaseStatus = filters.status.trim().toUpperCase() as DriveStatus;
@@ -303,7 +391,7 @@ export class RecruitmentDriveService {
           { statusCode: 400 }
         );
       }
-      where.AND.push({ status: uppercaseStatus });
+      filterStatus = uppercaseStatus;
     }
 
     if (filters?.search?.trim()) {
@@ -342,13 +430,28 @@ export class RecruitmentDriveService {
       },
     });
 
-    const now = new Date();
-    return drives.map(drive => {
-      if (drive.status !== DriveStatus.CANCELLED && drive.driveDate < now) {
-        return { ...drive, status: DriveStatus.COMPLETED };
-      }
-      return drive;
-    });
+    const mappedDrives = await Promise.all(
+      drives.map(async (drive) => {
+        const calculated = calculateDriveStatus(drive.deadline, drive.driveDate, drive.status);
+        if (drive.status !== calculated && drive.status !== DriveStatus.CANCELLED) {
+          prisma.recruitmentDrive
+            .update({
+              where: { id: drive.id },
+              data: { status: calculated },
+            })
+            .catch((err) =>
+              console.warn(`Failed to sync drive status in DB for ${drive.id}:`, err?.message)
+            );
+        }
+        return { ...drive, status: calculated };
+      })
+    );
+
+    if (filterStatus) {
+      return mappedDrives.filter((d) => d.status === filterStatus);
+    }
+
+    return mappedDrives;
   }
 
   /**
@@ -374,10 +477,18 @@ export class RecruitmentDriveService {
       );
     }
 
-    const now = new Date();
-    if (drive.status !== DriveStatus.CANCELLED && drive.driveDate < now) {
-      drive.status = DriveStatus.COMPLETED;
+    const calculated = calculateDriveStatus(drive.deadline, drive.driveDate, drive.status);
+    if (drive.status !== calculated && drive.status !== DriveStatus.CANCELLED) {
+      prisma.recruitmentDrive
+        .update({
+          where: { id: drive.id },
+          data: { status: calculated },
+        })
+        .catch((err) =>
+          console.warn(`Failed to sync drive status in DB for ${drive.id}:`, err?.message)
+        );
     }
+    drive.status = calculated;
 
     return drive;
   }
@@ -426,7 +537,15 @@ export class RecruitmentDriveService {
     if (input.jobLocation !== undefined) dataToUpdate.jobLocation = input.jobLocation?.trim() || null;
     if (input.driveDate !== undefined) dataToUpdate.driveDate = normalizeDriveDate(input.driveDate);
     if (input.deadline !== undefined) dataToUpdate.deadline = normalizeDeadline(input.deadline);
-    if (input.status !== undefined) dataToUpdate.status = input.status;
+    
+    // Automatically calculate status from dates
+    const finalDeadline = dataToUpdate.deadline || existing.deadline;
+    const finalDriveDate = dataToUpdate.driveDate || existing.driveDate;
+    dataToUpdate.status = calculateDriveStatus(
+      finalDeadline,
+      finalDriveDate,
+      input.status === DriveStatus.CANCELLED ? DriveStatus.CANCELLED : existing.status
+    );
     if (input.minCgpa !== undefined) dataToUpdate.minCgpa = Number(input.minCgpa);
     if (input.minTenthPercentage !== undefined) dataToUpdate.minTenthPercentage = Number(input.minTenthPercentage);
     if (input.minTwelfthPercentage !== undefined) {

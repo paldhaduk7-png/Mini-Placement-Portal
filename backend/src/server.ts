@@ -2,6 +2,7 @@ import { config } from './config/env';
 import app from './app';
 import prisma from './lib/prisma';
 import { ApplicationService } from './services/application.service';
+import { RecruitmentDriveService } from './services/recruitment-drive.service';
 import http from 'http';
 import dns from 'dns/promises';
 
@@ -39,6 +40,10 @@ async function startServer() {
     // Ensure all student placement states are synchronized per student
     await ApplicationService.syncAllStudentPlacements();
     console.log('Student placements synchronized successfully');
+
+    // Automatically synchronize recruitment drive statuses based on drive dates
+    await RecruitmentDriveService.syncAllDriveStatuses();
+    console.log('Recruitment drive statuses synchronized successfully');
 
     // Start Express HTTP server
     server = app.listen(PORT, () => {

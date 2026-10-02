@@ -87,7 +87,17 @@ export const DriveTable: React.FC<DriveTableProps> = ({ drives }) => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={isClosed ? 'destructive' : 'success'}>
+                  <Badge
+                    variant={
+                      drive.status === 'UPCOMING'
+                        ? 'success'
+                        : drive.status === 'ONGOING'
+                        ? 'warning'
+                        : drive.status === 'COMPLETED' || drive.status === 'CANCELLED'
+                        ? 'destructive'
+                        : 'secondary'
+                    }
+                  >
                     {drive.status}
                   </Badge>
                 </TableCell>

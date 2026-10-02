@@ -263,8 +263,18 @@ export const DriveDetails: React.FC = () => {
                 <h1 className="text-xl font-bold tracking-tight text-white">
                   {company?.name || 'Company'} - {drive?.role || 'Role'}
                 </h1>
-                <Badge variant={isClosed ? 'destructive' : 'success'}>
-                  {drive?.status || (isClosed ? 'CLOSED' : 'OPEN')}
+                <Badge
+                  variant={
+                    drive?.status === 'UPCOMING'
+                      ? 'success'
+                      : drive?.status === 'ONGOING'
+                      ? 'warning'
+                      : drive?.status === 'COMPLETED' || drive?.status === 'CANCELLED'
+                      ? 'destructive'
+                      : 'secondary'
+                  }
+                >
+                  {drive?.status}
                 </Badge>
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-1 text-xs text-slate-300">
