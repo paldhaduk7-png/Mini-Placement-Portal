@@ -1,15 +1,17 @@
 import nodemailer from 'nodemailer';
-import path from 'path';
 import { config } from '../config/env';
 
 const transporter = nodemailer.createTransport({
-  host: config.mailServer,
+  host: config.mailServer || 'smtp.gmail.com',
   port: config.mailPort,
   secure: config.mailPort === 465,
   auth: {
     user: config.mailUsername,
     pass: config.mailPassword,
   },
+  connectionTimeout: 10000,
+  greetingTimeout: 10000,
+  socketTimeout: 15000,
 });
 
 export const sendOtpEmail = async (to: string, otp: string) => {
@@ -18,8 +20,10 @@ export const sendOtpEmail = async (to: string, otp: string) => {
     return;
   }
   
+  const senderAddress = config.mailFrom || config.mailUsername;
+
   const mailOptions = {
-    from: config.mailFrom,
+    from: senderAddress,
     to,
     subject: 'Password Reset OTP - Mini Placement Portal',
     text: `Your OTP for password reset is: ${otp}. It will expire in 10 minutes.`,
@@ -42,61 +46,46 @@ export const sendTpoOtpEmail = async (to: string, otp: string) => {
     console.warn('Mail configuration is missing. Printing TPO OTP to console instead: ', otp);
     return;
   }
-  
-  const logoPath = path.join(__dirname, '../../../frontend/public/images/ldce-logo.png');
+
+  const senderAddress = config.mailFrom || config.mailUsername;
 
   const mailOptions = {
-    from: `"LD College Placement Cell" <${config.mailFrom}>`,
+    from: `"LD College Placement Cell" <${senderAddress}>`,
     to,
     subject: 'LD College - TPO Login Verification',
     text: `Your TPO login verification code is:\n\n${otp}\n\nThis OTP is valid for 5 minutes.\n\nIf you did not attempt to log in, please ignore this email.`,
     html: `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; text-align: center;">
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 20px;" />
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; text-align: center; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px;">
+        <div style="padding-bottom: 16px; border-bottom: 2px solid #1e3a8a; margin-bottom: 24px;">
+          <h2 style="color: #1e3a8a; margin: 0; font-size: 20px; font-weight: bold; letter-spacing: 0.5px;">L.D. COLLEGE OF ENGINEERING</h2>
+          <p style="color: #64748b; margin: 4px 0 0 0; font-size: 13px; text-transform: uppercase; font-weight: 600; letter-spacing: 1.5px;">Training &amp; Placement Cell</p>
+        </div>
         
-        <img src="cid:ldce-logo" alt="LDCE Logo" style="width: 80px; height: auto; margin: 0 auto 15px auto; display: block;" />
-        
-        <h2 style="color: #1e3a8a; margin: 0; font-size: 22px; font-weight: normal;">LD College of Engineering</h2>
-        <p style="color: #64748b; margin: 5px 0 30px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">PLACEMENT CELL PORTAL</p>
-        
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 30px;" />
-        
-        <h3 style="color: #334155; font-size: 18px; margin: 0 0 15px 0;">Verify TPO Login</h3>
-        <p style="color: #475569; font-size: 15px; line-height: 1.5; margin: 0 0 20px 0;">
+        <h3 style="color: #334155; font-size: 17px; margin: 0 0 12px 0;">Verify TPO Login</h3>
+        <p style="color: #475569; font-size: 14px; line-height: 1.5; margin: 0 0 20px 0;">
           Your Training and Placement Officer (TPO)<br />
           login verification code is:
         </p>
         
-        <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 20px; display: inline-block; margin-bottom: 20px;">
+        <div style="background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 16px 24px; display: inline-block; margin-bottom: 20px;">
           <h1 style="color: #1e40af; letter-spacing: 8px; font-size: 32px; margin: 0; font-family: monospace;">${otp}</h1>
         </div>
         
-        <p style="color: #64748b; font-size: 14px; margin: 0 0 25px 0;">
+        <p style="color: #64748b; font-size: 13px; margin: 0 0 20px 0;">
           This code will expire in 5 minutes.
         </p>
         
-        <p style="color: #64748b; font-size: 13px; line-height: 1.5; margin: 0 0 30px 0;">
+        <p style="color: #94a3b8; font-size: 12px; line-height: 1.5; margin: 0 0 24px 0;">
           If you did not attempt to log in to the<br />
-          Placement Cell Portal, you can safely ignore<br />
-          this email.
+          Placement Cell Portal, you can safely ignore this email.
         </p>
         
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-bottom: 20px;" />
-        
-        <p style="color: #94a3b8; font-size: 12px; margin: 0 0 5px 0;">LDCE Placement Cell</p>
-        <p style="color: #94a3b8; font-size: 12px; margin: 0 0 15px 0;">Mini Placement Portal</p>
-        <p style="color: #cbd5e1; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} Mini Placement Portal</p>
-        
-        <hr style="border: 0; border-top: 1px solid #e2e8f0; margin-top: 20px;" />
+        <div style="border-top: 1px solid #e2e8f0; padding-top: 16px;">
+          <p style="color: #94a3b8; font-size: 11px; margin: 0 0 4px 0;">LDCE Training &amp; Placement Cell • Ahmedabad</p>
+          <p style="color: #cbd5e1; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} Mini Placement Portal</p>
+        </div>
       </div>
     `,
-    attachments: [
-      {
-        filename: 'ldce-logo.png',
-        path: logoPath,
-        cid: 'ldce-logo'
-      }
-    ]
   };
 
   await transporter.sendMail(mailOptions);

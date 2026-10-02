@@ -15,7 +15,7 @@ export const config = {
   mailPassword: (process.env.MAIL_PASSWORD || '').replace(/\s/g, ''),
   mailFrom: process.env.MAIL_FROM || '',
   mailServer: process.env.MAIL_SERVER || 'smtp.gmail.com',
-  mailPort: parseInt(process.env.MAIL_PORT || '465', 10),
+  mailPort: parseInt(process.env.MAIL_PORT || '587', 10),
 };
 
 if (!config.jwtSecret && config.nodeEnv !== 'test') {

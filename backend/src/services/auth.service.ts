@@ -221,8 +221,11 @@ export class AuthService {
     // Send email
     try {
       await sendTpoOtpEmail(email, otp);
-    } catch (error) {
-      console.error('Failed to send OTP email:', error);
+    } catch (error: any) {
+      const errCode = error?.code || 'UNKNOWN';
+      const errMsg = error?.message || 'SMTP delivery failure';
+      console.error(`Failed to send OTP email: [${errCode}] ${errMsg}`);
+
       if (config.nodeEnv === 'development') {
         const fallbackOtp = '123456';
         otpStore.set(email, { otp: fallbackOtp, expiresAt, verified: false });
