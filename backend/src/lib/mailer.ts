@@ -2,12 +2,12 @@ import nodemailer from 'nodemailer';
 import { config } from '../config/env';
 
 const transporter = nodemailer.createTransport({
-  host: config.mailServer || 'smtp.gmail.com',
-  port: config.mailPort,
-  secure: config.mailPort === 465,
+  host: process.env.MAIL_SERVER || 'smtp.gmail.com',
+  port: Number(process.env.MAIL_PORT),
+  secure: Number(process.env.MAIL_PORT) === 465,
   auth: {
-    user: config.mailUsername,
-    pass: config.mailPassword,
+    user: process.env.MAIL_USERNAME,
+    pass: (process.env.MAIL_PASSWORD || '').replace(/\s/g, ''),
   },
   connectionTimeout: 10000,
   greetingTimeout: 10000,
