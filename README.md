@@ -34,38 +34,38 @@ TPO (Training and Placement Officer) users manage the entire placement pipeline 
 
 ---
 
-## System Workflow
+## System Overview
 
 ```mermaid
-flowchart TD
-    subgraph Student
-        A[Register] --> B[Login]
-        B --> C[Complete Academic Profile]
-        C --> D[Submit and Lock Profile]
-        D --> E{TPO Verifies?}
-        E -- Verified --> F[Browse Recruitment Drives]
-        E -- Rejected --> C
-        F --> G[Check Eligibility]
-        G --> H[Select Job Role]
-        H --> I[Apply and Upload Resume]
-        I --> J[Track Application Status]
+flowchart LR
+    subgraph S["Student Flow"]
+        direction TB
+        S1[Register / Login] --> S2[Complete Profile]
+        S2 --> S3[TPO Verification]
+        S3 --> S4[Browse Drives]
+        S4 --> S5[Select Role]
+        S5 --> S6[Eligibility Check]
+        S6 --> S7[Apply + Upload Resume]
+        S7 --> S8[Track Application]
     end
 
-    subgraph TPO
-        P[Login + OTP] --> Q[Dashboard]
-        Q --> R[Manage Students / Verify Profiles]
-        Q --> S[Manage Companies]
-        Q --> T[Create Recruitment Drive]
-        T --> U[Add Multiple Job Roles]
-        U --> V[Configure Eligibility per Drive or Role]
-        V --> W[Publish Drive]
-        W --> X[View Eligible Students]
-        X --> Y[Manage Applications]
-        Y --> Z[Schedule Interviews]
-        Y --> AA[Update Application Status]
-        Y --> AB[Export CSV]
+    subgraph T["TPO Flow"]
+        direction TB
+        T1[Login + OTP] --> T2[Dashboard]
+        T2 --> T3[Manage Students]
+        T2 --> T4[Manage Companies]
+        T2 --> T5[Create Drives + Roles]
+        T5 --> T6[Configure Eligibility]
+        T2 --> T7[Manage Applications]
+        T7 --> T8[Interview / Status]
     end
+
+    S8 -->|Application| API[(Backend API)]
+    T8 -->|Manage| API
+    API --> DB[(PostgreSQL)]
 ```
+
+Mini Placement Portal connects students and TPO users through a centralized placement workflow. Students discover eligible recruitment roles and submit applications, while TPO users manage students, companies, recruitment drives, eligibility, applications and interview-related activities.
 
 ---
 
@@ -124,18 +124,38 @@ The system has exactly two roles, defined in `prisma/schema.prisma`:
 ## Project Architecture
 
 ```mermaid
-graph TD
-    Browser -->|HTTP/HTTPS| React[React Frontend - Vite]
-    React -->|Redux Slices| Store[Redux Store]
-    React -->|Axios calls| Backend[Express Backend - Node.js]
-    Backend --> Middleware[Auth + Role Middleware]
-    Middleware --> Controllers[Controllers]
-    Controllers --> Services[Services]
-    Services --> Prisma[Prisma ORM]
-    Prisma --> DB[(PostgreSQL - Supabase)]
-    Services -->|Images and Resumes| Cloudinary[Cloudinary Storage]
-    Services -->|OTP Emails| SMTP[Gmail SMTP - Nodemailer]
+flowchart TD
+    subgraph Client["Browser"]
+        FE["React Frontend (Vite)"]
+        RX["Redux Store"]
+        AX["Axios HTTP Client"]
+        FE <--> RX
+        FE --> AX
+    end
+
+    subgraph Backend["Express Backend (TypeScript)"]
+        MW["Auth + Role Middleware"]
+        CT["Controllers"]
+        SV["Services"]
+        PO["Prisma ORM"]
+        AX -->|API Request| MW
+        MW --> CT
+        CT --> SV
+        SV --> PO
+    end
+
+    subgraph Storage["External Storage"]
+        DB[("PostgreSQL (Supabase)")]
+        CL["Cloudinary"]
+        ML["Gmail SMTP"]
+    end
+
+    PO --> DB
+    SV -->|"Company Logos\nProfile Photos\nApplication Resumes"| CL
+    SV -->|OTP Emails| ML
 ```
+
+The frontend communicates with the Express backend through API requests. Backend services handle authentication, business logic and authorization before accessing PostgreSQL through Prisma. Cloudinary is used for application file and image storage where implemented.
 
 ---
 
@@ -250,9 +270,7 @@ erDiagram
         String password
         Role role
         String name
-        String phone
     }
-
     Student {
         String id PK
         String userId FK
@@ -266,14 +284,12 @@ erDiagram
         VerificationStatus verificationStatus
         Boolean isProfileLocked
     }
-
     Company {
         String id PK
         String name
         String imageUrl
         String website
     }
-
     RecruitmentDrive {
         String id PK
         String companyId FK
@@ -286,7 +302,6 @@ erDiagram
         DateTime driveDate
         DateTime deadline
     }
-
     DriveRole {
         String id PK
         String driveId FK
@@ -295,10 +310,7 @@ erDiagram
         Float maxCTC
         Int openings
         Boolean useCommonEligibility
-        Float minCgpa
-        Float minTenthPercentage
     }
-
     Application {
         String id PK
         String studentId FK
@@ -306,10 +318,8 @@ erDiagram
         String driveRoleId FK
         ApplicationStatus status
         String resumeUrl
-        String remarks
         Boolean isCurrentPlacement
     }
-
     Interview {
         String id PK
         String applicationId FK
@@ -319,7 +329,7 @@ erDiagram
         String meetingLink
     }
 
-    User ||--o| Student : "has"
+    User ||--o| Student : "has profile"
     User ||--o{ RecruitmentDrive : "creates"
     User ||--o{ Company : "creates"
     Company ||--o{ RecruitmentDrive : "has"
@@ -329,6 +339,8 @@ erDiagram
     Student ||--o{ Application : "submits"
     Application ||--o{ Interview : "has"
 ```
+
+The database separates company recruitment drives from their individual roles. Applications reference the selected role, allowing the system to maintain role-specific application information.
 
 ---
 
@@ -430,23 +442,24 @@ erDiagram
 
 ```mermaid
 flowchart TD
-    A[Visit Landing Page] --> B[Register with email and password]
-    B --> C[Login]
-    C --> D[Fill Academic Profile]
-    D --> E[Submit and Lock Profile]
-    E --> F{TPO Reviews}
-    F -- Rejected --> G[Edit Profile and Resubmit]
-    G --> E
-    F -- Verified --> H[Browse Recruitment Drives]
-    H --> I[Open Drive Details]
-    I --> J[Check Eligibility]
-    J -- Not Eligible --> K[Cannot Apply]
-    J -- Eligible --> L[Select Job Role]
-    L --> M[Upload Resume and Apply]
-    M --> N[Application Created - Status APPLIED]
-    N --> O[Track Status in My Applications]
-    O --> P[SHORTLISTED - INTERVIEW - SELECTED or REJECTED]
+    A([Start]) --> B[Register / Login]
+    B --> C[Fill Academic Profile]
+    C --> D[Submit and Lock Profile]
+    D --> E{TPO Review}
+    E -- Rejected --> C
+    E -- Verified --> F[Browse Recruitment Drives]
+    F --> G[Open Drive Details]
+    G --> H[View Available Roles]
+    H --> I{Eligible for Role?}
+    I -- No --> J([Not Eligible])
+    I -- Yes --> K[Select Role]
+    K --> L[Upload Resume]
+    L --> M[Submit Application]
+    M --> N[Track Application Status]
+    N --> O([SHORTLISTED / INTERVIEW / SELECTED / REJECTED])
 ```
+
+Students complete their placement profile, browse available recruitment drives, select a role, and are checked against the role's eligibility criteria before submitting an application. The submitted resume is associated with the application and the student can track its status.
 
 ---
 
@@ -454,120 +467,203 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    A[TPO Login - email and password] --> B[Receive OTP via Email]
-    B --> C[Verify OTP - Receive JWT]
+    A([Start]) --> B[Login with Email + Password]
+    B --> C[OTP Verification via Email]
     C --> D[TPO Dashboard]
+
     D --> E[Manage Students]
-    E --> F[Review Submitted Profiles]
-    F --> G[Verify or Reject Student]
-    D --> H[Manage Companies]
-    H --> I[Create / Edit / Delete Company]
-    D --> J[Manage Recruitment Drives]
-    J --> K[Create Drive - Select Company]
-    K --> L[Add Multiple Job Roles per Drive]
-    L --> M[Set Common or Per-Role Eligibility]
-    M --> N[Drive Published]
-    N --> O[View Eligible Students per Drive]
-    D --> P[Manage Applications]
-    P --> Q[View and Filter All Applications]
-    Q --> R[View Application Resume]
-    Q --> S[Update Application Status]
-    Q --> T[Schedule Interview]
-    Q --> U[Export CSV]
-    D --> V[History - Placement Records]
-    D --> W[Manage TPO Users]
-    D --> X[Update My Profile]
+    E --> E1{Verify or Reject Profile}
+
+    D --> F[Manage Companies]
+    F --> F1[Create / Edit / Delete Company]
+
+    D --> G[Manage Recruitment Drives]
+    G --> G1[Create Drive]
+    G1 --> G2[Add Multiple Roles per Drive]
+    G2 --> G3[Configure Eligibility]
+    G3 --> G4[Save Drive]
+    G4 --> G5[View Eligible Students]
+
+    D --> H[Manage Applications]
+    H --> H1[Filter and Search Applications]
+    H1 --> H2[View Student + Role + Resume]
+    H2 --> H3[Update Application Status]
+    H2 --> H4[Schedule / Update Interview]
+    H2 --> H5[Export CSV]
+
+    D --> I[Placement History]
+    D --> J[Manage TPO Users]
 ```
+
+TPO users manage the core placement operations, including student records, companies, recruitment drives, role-specific requirements, applications and interview-related information.
 
 ---
 
-## Recruitment Drive Workflow
+## Recruitment Drive — Multiple Role Structure
 
-A single recruitment drive belongs to one company and contains one or more `DriveRole` entries.
+A single recruitment drive belongs to one company and can contain multiple job roles. Each role is an independent `DriveRole` record with its own CTC range and openings.
 
 ```mermaid
-graph TD
-    Company --> Drive[Recruitment Drive]
-    Drive --> Role1[DriveRole: Software Engineer - CTC 6-8 LPA - 10 Openings]
-    Drive --> Role2[DriveRole: Data Analyst - CTC 5-7 LPA - 5 Openings]
-    Drive --> Role3[DriveRole: Graduate Engineer - CTC 4-6 LPA - 15 Openings]
-    Drive --> Eligibility[Common Eligibility - CGPA, 10th, 12th, Backlogs, Departments, Student Types]
-    Role1 --> Check1{useCommonEligibility}
-    Check1 -- true --> Eligibility
-    Check1 -- false --> RoleElig1[Role-Specific Eligibility Overrides Drive-Level]
+flowchart TD
+    CO[Company] --> RD[Recruitment Drive]
+
+    RD --> R1[Role 1\nSoftware Engineer\nCTC: 6-8 LPA | Openings: 10]
+    RD --> R2[Role 2\nData Analyst\nCTC: 5-7 LPA | Openings: 5]
+    RD --> R3[Role 3\nGraduate Engineer\nCTC: 4-6 LPA | Openings: 15]
+
+    RD --> EL[Drive-Level Eligibility\nCGPA / 10th% / 12th% / Backlogs\nDepartments / Student Types]
+
+    R1 --> UC1{useCommonEligibility}
+    R2 --> UC2{useCommonEligibility}
+    R3 --> UC3{useCommonEligibility}
+
+    UC1 -- true --> EL
+    UC2 -- true --> EL
+    UC3 -- true --> EL
+    UC1 -- false --> CE1[Custom Role Eligibility]
+    UC2 -- false --> CE2[Custom Role Eligibility]
+    UC3 -- false --> CE3[Custom Role Eligibility]
 ```
 
-**Eligibility Modes:**
-- **Common (default):** All roles in the drive share the drive-level eligibility criteria.
-- **Custom:** TPO configures distinct eligibility criteria per role independently.
+A recruitment drive represents one company's hiring event and can contain multiple job roles. Each role has its own title, CTC range and openings. Eligibility is normally shared across all roles, while role-specific eligibility can be configured when required.
 
-A student can apply to **only one role per drive** (enforced by unique constraint on `[studentId, driveId]` in the `Application` model).
+> A student can apply to **only one role per drive**, enforced by a unique constraint on `[studentId, driveId]` in the `Application` model.
+
+---
+
+## Eligibility Workflow
+
+```mermaid
+flowchart TD
+    A[Student selects a Role] --> B[System reads Drive + DriveRole]
+    B --> C{useCommonEligibility?}
+    C -- Yes --> D[Apply Drive-Level Criteria\nCGPA / 10th% / 12th% / Backlogs\nDepartments / Student Type]
+    C -- No --> E[Apply Role-Specific Criteria\nCustom per-role overrides]
+    D --> F[Compare against Student Profile]
+    E --> F
+    F --> G{Eligible?}
+    G -- Yes --> H([Student can Apply])
+    G -- No --> I([Not Eligible — Apply blocked])
+```
+
+Eligibility is evaluated for the selected role. Roles normally use the recruitment drive's common criteria, but a role can use its own criteria when role-specific eligibility is enabled.
 
 ---
 
 ## Application and Resume Workflow
 
-Resume is attached **per application**, not globally to the student. Each application carries its own resume file stored on Cloudinary.
+Each application is linked to one specific `DriveRole`. The resume is uploaded at the time of application and is stored against that application record, not the student globally.
 
 ```mermaid
 flowchart TD
-    S[Student] --> D[Select Recruitment Drive]
-    D --> R[Select Specific Job Role]
-    R --> E[Eligibility Check]
-    E -- Not Eligible --> X[Blocked from Applying]
-    E -- Eligible --> U[Upload Resume PDF]
-    U --> A[Application Created]
-    A --> C[Application references DriveRole]
-    C --> F[resumeUrl stored on Application record]
-    F --> G[TPO views resume via Application]
+    A[Student] --> B[Select Recruitment Drive]
+    B --> C[Select Specific Role]
+    C --> D{Eligibility Check}
+    D -- Not Eligible --> E([Blocked])
+    D -- Eligible --> F[Upload Resume PDF]
+    F --> G[Submit Application]
+
+    G --> H[Application Record Created]
+    H --> H1[studentId]
+    H --> H2[driveId]
+    H --> H3[driveRoleId]
+    H --> H4[status: APPLIED]
+    H --> H5[resumeUrl stored on Cloudinary]
+
+    H5 --> I[TPO views resume via Application]
 ```
 
-- Students also maintain a **profile-level resume** (`Student.resumeUrl`) separate from application resumes.
-- Application resumes are uploaded at apply time via `multipart/form-data`.
-- The unique constraint `[studentId, driveId]` prevents applying to the same drive more than once.
-
-**Example:**
+Each application references the specific role selected by the student. The resume is stored for that application, allowing different applications to use different resumes.
 
 ```
 Student A
-├── TCS Drive -> Software Engineer
-│       └── resume_v1.pdf (stored on this application)
-│
-└── Infosys Drive -> Data Analyst
-        └── resume_v2.pdf (stored on this application)
+├── TCS Drive -> Software Engineer    -> resume_v1.pdf
+└── Infosys Drive -> Data Analyst     -> resume_v2.pdf
 ```
+
+- Students also maintain a **profile-level resume** (`Student.resumeUrl`) separate from application resumes.
+- The unique constraint `[studentId, driveId]` prevents applying to the same drive more than once.
+
+---
+
+## TPO Application Management
+
+```mermaid
+flowchart TD
+    A[TPO] --> B[Open Applications]
+    B --> C[Filter / Search Applications]
+    C --> D[Select Application]
+    D --> E[View Student Details]
+    D --> F[View Selected Role]
+    D --> G[View Uploaded Resume]
+    D --> H[Update Application Status]
+    H --> H1([APPLIED])
+    H --> H2([SHORTLISTED])
+    H --> H3([INTERVIEW])
+    H --> H4([SELECTED])
+    H --> H5([REJECTED])
+    D --> I[Schedule / Update Interview]
+    B --> J[Export All Applications as CSV]
+```
+
+TPO users can review applications with the associated student, company role, resume and application status, along with interview information where implemented.
 
 ---
 
 ## Search Workflow
 
-Search is implemented using the `useDebouncedSearch` hook that delays API requests until the input is stable.
-
-**Rules:**
-- No API request is fired for 1 or 2 characters.
-- API request fires when input is **empty** (reset) or has **3 or more characters**.
-- Delay: **500ms** after the user stops typing.
+Search uses the `useDebouncedSearch` hook. Requests are delayed and only sent once the input is stable and meets the minimum length.
 
 ```mermaid
 flowchart TD
-    A[User types in search box] --> B[searchTerm state updated]
-    B --> C{Length is 0 OR Length >= 3?}
-    C -- No --> D[Wait - no API request sent]
-    C -- Yes --> E[Start 500ms debounce timer]
-    E --> F[Timer expires without new input?]
-    F -- No --> E
-    F -- Yes --> G[debouncedTerm updated]
-    G --> H[useEffect fires API request]
-    H --> I[Backend searches database]
-    I --> J[Results rendered in table]
+    A[User types in search box] --> B{Input length?}
+    B -- "0 characters (cleared)" --> C[Fire API request\nReset to default results]
+    B -- "1 or 2 characters" --> D[Wait — no request sent]
+    B -- "3 or more characters" --> E[Start 500ms debounce timer]
+    E --> F{User still typing?}
+    F -- Yes --> E
+    F -- No --> G[Fire API request with search term]
+    G --> H[Backend queries database]
+    H --> I[Results rendered in table]
 ```
 
-**Pages using debounced search:**
-- TPO Students list
-- TPO Companies list
-- TPO Drives list
-- TPO Applications list
-- TPO History list
+Search requests are debounced by 500ms and are triggered only after the minimum search length is reached. Clearing the search restores the default results.
+
+**Pages with debounced search:** Students · Companies · Drives · Applications · History
+
+---
+
+## End-to-End Flow
+
+```mermaid
+flowchart TD
+    subgraph TPO_SETUP ["TPO — Setup Phase"]
+        T1[Add Company] --> T2[Create Recruitment Drive]
+        T2 --> T3[Add Multiple Roles]
+        T3 --> T4[Configure Eligibility]
+        T4 --> T5[Save Drive]
+    end
+
+    subgraph STUDENT_FLOW ["Student — Application Phase"]
+        S1[Browse Drives] --> S2[Select Role]
+        S2 --> S3{Eligible?}
+        S3 -- No --> S4([Cannot Apply])
+        S3 -- Yes --> S5[Upload Resume + Apply]
+        S5 --> S6[Application Created]
+    end
+
+    subgraph TPO_REVIEW ["TPO — Review Phase"]
+        R1[View Applications] --> R2[Review Student + Resume]
+        R2 --> R3[Update Status]
+        R3 --> R4[Schedule Interview]
+        R4 --> R5([Placement Outcome])
+    end
+
+    T5 --> S1
+    S6 --> R1
+```
+
+This diagram shows the complete placement lifecycle — from TPO setup through student application to final placement outcome.
 
 ---
 
