@@ -11,8 +11,6 @@ export interface ApplyToDriveResult {
   hasResume: boolean;
   drive: {
     id: string;
-    role: string;
-    ctc: number;
     jobLocation: string | null;
     deadline: Date;
     company: {
@@ -20,6 +18,12 @@ export interface ApplyToDriveResult {
       name: string;
       imageUrl: string | null;
     };
+  };
+  driveRole: {
+    id: string;
+    title: string;
+    minCTC: number;
+    maxCTC: number;
   };
 }
 
@@ -44,6 +48,7 @@ export class ApplicationService {
   static async applyToDrive(
     userId: string,
     driveId: string,
+    driveRoleId: string,
     resume: ResumeUploadInput
   ): Promise<ApplyToDriveResult> {
     // 1. Fetch authenticated student profile
@@ -70,6 +75,16 @@ export class ApplicationService {
     if (!drive) {
       const error: any = new Error(`Recruitment drive with ID '${driveId}' was not found.`);
       error.statusCode = 404;
+      throw error;
+    }
+
+    const driveRole = await prisma.driveRole.findFirst({
+      where: { id: driveRoleId, driveId: driveId }
+    });
+    
+    if (!driveRole) {
+      const error: any = new Error('Selected role is invalid or does not belong to this recruitment drive.');
+      error.statusCode = 400;
       throw error;
     }
 
@@ -124,7 +139,8 @@ export class ApplicationService {
       application = await prisma.application.create({
         data: {
           student: { connect: { id: student.id } },
-          drive: { connect: { id: drive.id } },
+          driveRole: { connect: { id: driveRole.id } },
+          drive: { connect: { id: driveId } },
           status: ApplicationStatus.APPLIED,
           remarks: null,
         },
@@ -132,8 +148,6 @@ export class ApplicationService {
           drive: {
             select: {
               id: true,
-              role: true,
-              ctc: true,
               jobLocation: true,
               deadline: true,
               company: {
@@ -141,6 +155,14 @@ export class ApplicationService {
               },
             },
           },
+          driveRole: {
+            select: {
+              id: true,
+              title: true,
+              minCTC: true,
+              maxCTC: true
+            }
+          }
         },
       });
     } catch (err: any) {
@@ -187,6 +209,7 @@ export class ApplicationService {
       resumeUrl,
       hasResume: !!resumeUrl,
       drive: application.drive,
+      driveRole: application.driveRole,
     };
   }
 
@@ -225,8 +248,6 @@ export class ApplicationService {
         drive: {
           select: {
             id: true,
-            role: true,
-            ctc: true,
             jobLocation: true,
             deadline: true,
             company: {
@@ -238,6 +259,14 @@ export class ApplicationService {
             },
           },
         },
+        driveRole: {
+          select: {
+            id: true,
+            title: true,
+            minCTC: true,
+            maxCTC: true
+          }
+        }
       },
       orderBy: { appliedAt: 'desc' },
     });
@@ -296,8 +325,6 @@ export class ApplicationService {
         drive: {
           select: {
             id: true,
-            role: true,
-            ctc: true,
             jobLocation: true,
             deadline: true,
             company: {
@@ -309,6 +336,14 @@ export class ApplicationService {
             },
           },
         },
+        driveRole: {
+          select: {
+            id: true,
+            title: true,
+            minCTC: true,
+            maxCTC: true
+          }
+        }
       },
     });
 
@@ -342,6 +377,7 @@ export class ApplicationService {
         isCurrentPlacement: true,
       },
       include: {
+        driveRole: true,
         drive: {
           include: {
             company: {
@@ -361,6 +397,7 @@ export class ApplicationService {
         },
         orderBy: [{ updatedAt: 'desc' }, { appliedAt: 'desc' }],
         include: {
+          driveRole: true,
           drive: {
             include: {
               company: {
@@ -381,7 +418,7 @@ export class ApplicationService {
       };
     }
 
-    const currentCtc = currentPlacement.drive.ctc;
+    const currentCtc = currentPlacement.driveRole.maxCTC;
     const minimumNextPackage = currentCtc * 2;
 
     return {
@@ -430,7 +467,7 @@ export class ApplicationService {
         { student: { fullName: { contains: q, mode: 'insensitive' } } },
         { student: { user: { email: { contains: q, mode: 'insensitive' } } } },
         { drive: { company: { name: { contains: q, mode: 'insensitive' } } } },
-        { drive: { role: { contains: q, mode: 'insensitive' } } },
+        { driveRole: { title: { contains: q, mode: 'insensitive' } } },
       ];
     }
 
@@ -468,8 +505,6 @@ export class ApplicationService {
         drive: {
           select: {
             id: true,
-            role: true,
-            ctc: true,
             deadline: true,
             company: {
               select: {
@@ -480,6 +515,14 @@ export class ApplicationService {
             },
           },
         },
+        driveRole: {
+          select: {
+            id: true,
+            title: true,
+            minCTC: true,
+            maxCTC: true
+          }
+        }
       },
       orderBy: { appliedAt: 'desc' },
     });
@@ -549,11 +592,10 @@ export class ApplicationService {
       },
       drive: {
         id: app.drive.id,
-        role: app.drive.role,
-        ctc: app.drive.ctc,
         deadline: app.drive.deadline,
         company: app.drive.company,
       },
+      driveRole: app.driveRole,
     }));
   }
 
@@ -596,8 +638,6 @@ export class ApplicationService {
         drive: {
           select: {
             id: true,
-            role: true,
-            ctc: true,
             jobLocation: true,
             deadline: true,
             company: {
@@ -609,6 +649,14 @@ export class ApplicationService {
             },
           },
         },
+        driveRole: {
+          select: {
+            id: true,
+            title: true,
+            minCTC: true,
+            maxCTC: true
+          }
+        }
       },
     });
 
@@ -669,6 +717,7 @@ export class ApplicationService {
         verificationStatus: app.student.verificationStatus,
       },
       drive: app.drive,
+      driveRole: app.driveRole,
     };
   }
 
@@ -1075,11 +1124,10 @@ export class ApplicationService {
       // Per-application resume fields
       resumeUrl: true,
       resumeFileName: true,
+      driveRole: true,
       drive: {
           select: {
             id: true,
-            role: true,
-            ctc: true,
             jobLocation: true,
             deadline: true,
             company: {
@@ -1164,8 +1212,8 @@ export class ApplicationService {
         escapeCsv(app.student?.activeBacklogs != null ? app.student.activeBacklogs : '0'),
         escapeCsv(app.student?.verificationStatus || ''),
         escapeCsv(app.drive?.company?.name || ''),
-        escapeCsv(app.drive?.role || ''),
-        escapeCsv(app.drive?.ctc != null ? `${app.drive.ctc} LPA` : ''),
+        escapeCsv((app as any).driveRole?.title || ''),
+        escapeCsv((app as any).driveRole?.maxCTC != null ? `${(app as any).driveRole.maxCTC} LPA` : ''),
         escapeCsv(app.drive?.jobLocation || ''),
         escapeCsv(appliedDateStr),
         escapeCsv(app.status),

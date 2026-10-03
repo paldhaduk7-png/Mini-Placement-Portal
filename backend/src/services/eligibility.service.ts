@@ -22,12 +22,27 @@ export class EligibilityService {
   static async checkStudentEligibility(
     student: Student | StudentWithUser,
     drive: RecruitmentDrive,
-    currentTime: Date = new Date()
+    currentTime: Date = new Date(),
+    role?: any
   ): Promise<EligibilityResult> {
     const reasons: string[] = [];
 
+    const effectiveCriteria = role && !role.useCommonEligibility
+      ? {
+          minCgpa: role.minCgpa ?? drive.minCgpa,
+          minTenthPercentage: role.minTenthPercentage ?? drive.minTenthPercentage,
+          minTwelfthPercentage: role.minTwelfthPercentage ?? drive.minTwelfthPercentage,
+          minD2dCgpa: role.minD2dCgpa ?? drive.minD2dCgpa,
+          maxActiveBacklogs: role.maxActiveBacklogs ?? drive.maxActiveBacklogs,
+          allowedStudentTypes: role.allowedStudentTypes?.length ? role.allowedStudentTypes : drive.allowedStudentTypes,
+          allowedDepartments: role.allowedDepartments?.length ? role.allowedDepartments : drive.allowedDepartments,
+          requiresVerification: drive.requiresVerification,
+          deadline: drive.deadline,
+        }
+      : drive;
+
     // 1. Profile Verification Check
-    if (drive.requiresVerification) {
+    if (effectiveCriteria.requiresVerification) {
       if (student.verificationStatus !== VerificationStatus.VERIFIED) {
         reasons.push(
           `Profile verification required. Current verification status is ${student.verificationStatus}.`
@@ -36,53 +51,53 @@ export class EligibilityService {
     }
 
     // 2. Student Type Check
-    if (drive.allowedStudentTypes && drive.allowedStudentTypes.length > 0) {
-      if (!drive.allowedStudentTypes.includes(student.studentType)) {
+    if (effectiveCriteria.allowedStudentTypes && effectiveCriteria.allowedStudentTypes.length > 0) {
+      if (!effectiveCriteria.allowedStudentTypes.includes(student.studentType)) {
         reasons.push(
-          `Student type '${student.studentType}' is not eligible for this drive. Allowed types: ${drive.allowedStudentTypes.join(', ')}.`
+          `Student type '${student.studentType}' is not eligible for this drive. Allowed types: ${effectiveCriteria.allowedStudentTypes.join(', ')}.`
         );
       }
     }
 
     // 3. Department Check (if allowedDepartments is empty, no restriction)
-    if (drive.allowedDepartments && drive.allowedDepartments.length > 0) {
+    if (effectiveCriteria.allowedDepartments && effectiveCriteria.allowedDepartments.length > 0) {
       const studentDept = student.department?.trim().toLowerCase();
-      const isDeptAllowed = drive.allowedDepartments.some(
-        (d) => d.trim().toLowerCase() === studentDept
+      const isDeptAllowed = effectiveCriteria.allowedDepartments.some(
+        (d: string) => d.trim().toLowerCase() === studentDept
       );
       if (!isDeptAllowed) {
         reasons.push(
-          `Department '${student.department}' is not eligible for this drive. Allowed departments: ${drive.allowedDepartments.join(', ')}.`
+          `Department '${student.department}' is not eligible for this drive. Allowed departments: ${effectiveCriteria.allowedDepartments.join(', ')}.`
         );
       }
     }
 
     // 4. Current CGPA Check
-    if (drive.minCgpa > 0) {
-      if (student.currentCgpa < drive.minCgpa) {
+    if (effectiveCriteria.minCgpa > 0) {
+      if (student.currentCgpa < effectiveCriteria.minCgpa) {
         reasons.push(
-          `Minimum CGPA required is ${drive.minCgpa}. Student CGPA is ${student.currentCgpa}.`
+          `Minimum CGPA required is ${effectiveCriteria.minCgpa}. Student CGPA is ${student.currentCgpa}.`
         );
       }
     }
 
     // 5. 10th Percentage Check
-    if (drive.minTenthPercentage > 0) {
-      if (student.tenthPercentage < drive.minTenthPercentage) {
+    if (effectiveCriteria.minTenthPercentage > 0) {
+      if (student.tenthPercentage < effectiveCriteria.minTenthPercentage) {
         reasons.push(
-          `Minimum 10th percentage required is ${drive.minTenthPercentage}%. Student has ${student.tenthPercentage}%.`
+          `Minimum 10th percentage required is ${effectiveCriteria.minTenthPercentage}%. Student has ${student.tenthPercentage}%.`
         );
       }
     }
 
     // 6. 12th Percentage Check (Only for REGULAR students)
     if (student.studentType === StudentType.REGULAR) {
-      if (drive.minTwelfthPercentage !== null && drive.minTwelfthPercentage !== undefined) {
+      if (effectiveCriteria.minTwelfthPercentage !== null && effectiveCriteria.minTwelfthPercentage !== undefined) {
         if (student.twelfthPercentage === null || student.twelfthPercentage === undefined) {
           reasons.push('12th percentage is required for REGULAR students. Record missing.');
-        } else if (student.twelfthPercentage < drive.minTwelfthPercentage) {
+        } else if (student.twelfthPercentage < effectiveCriteria.minTwelfthPercentage) {
           reasons.push(
-            `Minimum 12th percentage required is ${drive.minTwelfthPercentage}%. Student has ${student.twelfthPercentage}%.`
+            `Minimum 12th percentage required is ${effectiveCriteria.minTwelfthPercentage}%. Student has ${student.twelfthPercentage}%.`
           );
         }
       }
@@ -91,12 +106,12 @@ export class EligibilityService {
 
     // 7. D2D CGPA Check (Only for D2D students)
     if (student.studentType === StudentType.D2D) {
-      if (drive.minD2dCgpa !== null && drive.minD2dCgpa !== undefined) {
+      if (effectiveCriteria.minD2dCgpa !== null && effectiveCriteria.minD2dCgpa !== undefined) {
         if (student.d2dCgpa === null || student.d2dCgpa === undefined) {
           reasons.push('D2D CGPA is required for D2D students. Record missing.');
-        } else if (student.d2dCgpa < drive.minD2dCgpa) {
+        } else if (student.d2dCgpa < effectiveCriteria.minD2dCgpa) {
           reasons.push(
-            `Minimum D2D CGPA required is ${drive.minD2dCgpa}. Student D2D CGPA is ${student.d2dCgpa}.`
+            `Minimum D2D CGPA required is ${effectiveCriteria.minD2dCgpa}. Student D2D CGPA is ${student.d2dCgpa}.`
           );
         }
       }
@@ -104,15 +119,15 @@ export class EligibilityService {
     // Note: REGULAR students are NOT restricted by d2dCgpa.
 
     // 8. Active Backlogs Check
-    if (student.activeBacklogs > drive.maxActiveBacklogs) {
+    if (student.activeBacklogs > effectiveCriteria.maxActiveBacklogs) {
       reasons.push(
-        `Maximum allowed active backlogs is ${drive.maxActiveBacklogs}. Student has ${student.activeBacklogs}.`
+        `Maximum allowed active backlogs is ${effectiveCriteria.maxActiveBacklogs}. Student has ${student.activeBacklogs}.`
       );
     }
 
     // 9. Application Deadline Check
     // If deadline was saved at midnight UTC (00:00:00.000Z), treat cutoff as evening 6:00 PM IST (18:00 IST / 12:30 UTC) on that date
-    let effectiveDeadline = new Date(drive.deadline);
+    let effectiveDeadline = new Date(effectiveCriteria.deadline);
     if (
       effectiveDeadline.getUTCHours() === 0 &&
       effectiveDeadline.getUTCMinutes() === 0 &&
@@ -146,6 +161,7 @@ export class EligibilityService {
       },
       include: {
         drive: true,
+        driveRole: true,
       },
     });
 
@@ -158,14 +174,18 @@ export class EligibilityService {
         orderBy: [{ updatedAt: 'desc' }, { appliedAt: 'desc' }],
         include: {
           drive: true,
+          driveRole: true,
         },
       });
     }
 
-    if (currentPlacement) {
-      const currentCtc = currentPlacement.drive.ctc;
+    if (currentPlacement && currentPlacement.driveRole) {
+      const currentCtc = currentPlacement.driveRole.maxCTC;
       const requiredPackage = currentCtc * 2;
-      if (drive.ctc < requiredPackage) {
+      
+      const hasEligibleRole = (drive as any).roles?.some((r: any) => r.maxCTC >= requiredPackage) || false;
+      
+      if (!hasEligibleRole) {
         reasons.push(
           `You are currently placed with a ₹${currentCtc} LPA package. This drive requires a minimum package of ₹${requiredPackage} LPA under the current placement eligibility rule.`
         );
@@ -181,7 +201,7 @@ export class EligibilityService {
   /**
    * TPO: Fetch all eligible students for a drive
    */
-  static async getEligibleStudentsForDrive(driveId: string) {
+  static async getEligibleStudentsForDrive(driveId: string, roleId?: string) {
     // 1. Fetch drive
     const drive = await prisma.recruitmentDrive.findUnique({
       where: { id: driveId },
@@ -189,6 +209,7 @@ export class EligibilityService {
         company: {
           select: { id: true, name: true, imageUrl: true },
         },
+        roles: true,
       },
     });
 
@@ -197,6 +218,8 @@ export class EligibilityService {
       error.statusCode = 404;
       throw error;
     }
+
+    const selectedRole = roleId ? drive.roles.find(r => r.id === roleId) : undefined;
 
     // 2. Fetch all students with user details (passwords omitted)
     const students = await prisma.student.findMany({
@@ -213,7 +236,7 @@ export class EligibilityService {
     const now = new Date();
 
     for (const student of students) {
-      const result = await this.checkStudentEligibility(student, drive, now);
+      const result = await this.checkStudentEligibility(student, drive, now, selectedRole);
       if (result.eligible) {
         eligibleStudents.push({
           id: student.id,
@@ -236,8 +259,7 @@ export class EligibilityService {
     return {
       drive: {
         id: drive.id,
-        role: drive.role,
-        ctc: drive.ctc,
+        roles: drive.roles,
         deadline: drive.deadline,
         company: drive.company,
       },
@@ -249,7 +271,7 @@ export class EligibilityService {
   /**
    * Student: Check own eligibility for a drive
    */
-  static async checkStudentEligibilityForDrive(userId: string, driveId: string) {
+  static async checkStudentEligibilityForDrive(userId: string, driveId: string, roleId?: string) {
     // 1. Fetch student by authenticated user's ID
     const student = await prisma.student.findUnique({
       where: { userId },
@@ -268,6 +290,7 @@ export class EligibilityService {
         company: {
           select: { id: true, name: true, imageUrl: true },
         },
+        roles: true,
       },
     });
 
@@ -276,9 +299,11 @@ export class EligibilityService {
       error.statusCode = 404;
       throw error;
     }
+    
+    const selectedRole = roleId ? drive.roles.find(r => r.id === roleId) : undefined;
 
     // 3. Evaluate eligibility
-    const result = await this.checkStudentEligibility(student, drive);
+    const result = await this.checkStudentEligibility(student, drive, new Date(), selectedRole);
 
     return {
       drive,

@@ -30,6 +30,7 @@ export class ApplicationController {
     try {
       const userId = req.user?.userId;
       const driveId = req.params.id;
+      const { driveRoleId } = req.body;
 
       if (!userId) {
         res.status(401).json({ success: false, message: 'Authentication required.' });
@@ -38,6 +39,11 @@ export class ApplicationController {
 
       if (!driveId?.trim()) {
         res.status(400).json({ success: false, message: 'Drive ID is required.' });
+        return;
+      }
+
+      if (!driveRoleId?.trim()) {
+        res.status(400).json({ success: false, message: 'Drive Role ID is required.' });
         return;
       }
 
@@ -66,7 +72,7 @@ export class ApplicationController {
         return;
       }
 
-      const result = await ApplicationService.applyToDrive(userId, driveId.trim(), {
+      const result = await ApplicationService.applyToDrive(userId, driveId.trim(), driveRoleId.trim(), {
         buffer: file.buffer,
         originalName: file.originalname,
       });

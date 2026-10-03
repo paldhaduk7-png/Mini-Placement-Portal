@@ -21,9 +21,8 @@ export class RecruitmentDriveController {
 
       const {
         companyId,
-        role,
         description,
-        ctc,
+        roles,
         jobLocation,
         driveDate,
         deadline,
@@ -40,9 +39,8 @@ export class RecruitmentDriveController {
 
       const drive = await RecruitmentDriveService.createDrive({
         companyId,
-        role,
         description,
-        ctc,
+        roles,
         jobLocation,
         driveDate,
         deadline,

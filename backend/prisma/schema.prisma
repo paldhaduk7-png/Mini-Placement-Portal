@@ -138,9 +138,7 @@ model Company {
 model RecruitmentDrive {
   id                   String        @id @default(uuid())
   companyId            String
-  role                 String
   description          String?
-  ctc                  Float         // CTC in LPA
   jobLocation          String?
   driveDate            DateTime
   deadline             DateTime
@@ -163,6 +161,39 @@ model RecruitmentDrive {
   company              Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdBy            User          @relation(fields: [createdById], references: [id])
   applications         Application[]
+  roles                DriveRole[]
+}
+
+// ==========================================
+// RECRUITMENT DRIVE ROLE
+// ==========================================
+
+model DriveRole {
+  id                   String        @id @default(uuid())
+  driveId              String
+  title                String
+  description          String?
+  minCTC               Float
+  maxCTC               Float
+  openings             Int?
+
+  // Eligibility Mode
+  useCommonEligibility Boolean       @default(true)
+
+  // Custom Eligibility Criteria (Only used if useCommonEligibility is false)
+  minCgpa              Float?
+  minTenthPercentage   Float?
+  minTwelfthPercentage Float?
+  minD2dCgpa           Float?
+  maxActiveBacklogs    Int?
+  allowedStudentTypes  StudentType[] @default([REGULAR, D2D])
+  allowedDepartments   String[]      @default([])
+
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt @default(now())
+
+  drive                RecruitmentDrive @relation(fields: [driveId], references: [id], onDelete: Cascade)
+  applications         Application[]
 }
 
 // ==========================================
@@ -173,6 +204,7 @@ model Application {
   id             String            @id @default(uuid())
   studentId      String
   driveId        String
+  driveRoleId    String
   appliedAt      DateTime          @default(now())
   status         ApplicationStatus @default(APPLIED)
   remarks        String?
@@ -185,6 +217,7 @@ model Application {
 
   student        Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
   drive          RecruitmentDrive  @relation(fields: [driveId], references: [id], onDelete: Cascade)
+  driveRole      DriveRole         @relation(fields: [driveRoleId], references: [id], onDelete: Cascade)
 
   // Prevents duplicate applications
   @@unique([studentId, driveId])

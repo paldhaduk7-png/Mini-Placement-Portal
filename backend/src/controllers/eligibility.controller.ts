@@ -9,6 +9,7 @@ export class EligibilityController {
   static async getEligibleStudentsForDrive(req: Request, res: Response): Promise<void> {
     try {
       const driveId = req.params.id;
+      const roleId = req.query.roleId as string | undefined;
 
       if (!driveId?.trim()) {
         res.status(400).json({
@@ -18,7 +19,7 @@ export class EligibilityController {
         return;
       }
 
-      const result = await EligibilityService.getEligibleStudentsForDrive(driveId.trim());
+      const result = await EligibilityService.getEligibleStudentsForDrive(driveId.trim(), roleId?.trim());
 
       res.status(200).json({
         success: true,
@@ -40,6 +41,7 @@ export class EligibilityController {
   static async checkStudentEligibility(req: Request, res: Response): Promise<void> {
     try {
       const driveId = req.params.id;
+      const roleId = req.query.roleId as string | undefined;
       const userId = req.user?.userId;
 
       if (!userId) {
@@ -60,7 +62,8 @@ export class EligibilityController {
 
       const result = await EligibilityService.checkStudentEligibilityForDrive(
         userId,
-        driveId.trim()
+        driveId.trim(),
+        roleId?.trim()
       );
 
       // Ineligibility returns HTTP 200 with eligible=false and human-readable reasons

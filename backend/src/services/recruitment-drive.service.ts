@@ -3,10 +3,23 @@ import prisma from '../lib/prisma';
 
 export interface CreateDriveInput {
   companyId: string;
-  role: string;
   description?: string | null;
-  ctc: number;
   jobLocation?: string | null;
+  roles: {
+    title: string;
+    description?: string | null;
+    minCTC: number;
+    maxCTC: number;
+    openings?: number | null;
+    useCommonEligibility?: boolean;
+    minCgpa?: number | null;
+    minTenthPercentage?: number | null;
+    minTwelfthPercentage?: number | null;
+    minD2dCgpa?: number | null;
+    maxActiveBacklogs?: number | null;
+    allowedStudentTypes?: StudentType[];
+    allowedDepartments?: string[];
+  }[];
   driveDate: string | Date;
   deadline: string | Date;
   status?: DriveStatus;
@@ -23,10 +36,24 @@ export interface CreateDriveInput {
 
 export interface UpdateDriveInput {
   companyId?: string;
-  role?: string;
   description?: string | null;
-  ctc?: number;
   jobLocation?: string | null;
+  roles?: {
+    id?: string;
+    title: string;
+    description?: string | null;
+    minCTC: number;
+    maxCTC: number;
+    openings?: number | null;
+    useCommonEligibility?: boolean;
+    minCgpa?: number | null;
+    minTenthPercentage?: number | null;
+    minTwelfthPercentage?: number | null;
+    minD2dCgpa?: number | null;
+    maxActiveBacklogs?: number | null;
+    allowedStudentTypes?: StudentType[];
+    allowedDepartments?: string[];
+  }[];
   driveDate?: string | Date;
   deadline?: string | Date;
   status?: DriveStatus;
@@ -163,14 +190,45 @@ export class RecruitmentDriveService {
     data: Partial<CreateDriveInput>,
     existingData?: { driveDate: Date; deadline: Date }
   ) {
-    if (data.role !== undefined && (!data.role || !data.role.trim())) {
-      throw Object.assign(new Error('Role is required and cannot be empty.'), { statusCode: 400 });
-    }
-
-    if (data.ctc !== undefined) {
-      const ctcVal = Number(data.ctc);
-      if (isNaN(ctcVal) || ctcVal <= 0) {
-        throw Object.assign(new Error('CTC must be a positive number greater than 0.'), { statusCode: 400 });
+    if (data.roles !== undefined) {
+      if (!Array.isArray(data.roles) || data.roles.length === 0) {
+        throw Object.assign(new Error('At least one role is required.'), { statusCode: 400 });
+      }
+      
+      const roleTitles = new Set<string>();
+      
+      for (const role of data.roles) {
+        if (!role.title || !role.title.trim()) {
+          throw Object.assign(new Error('Role title is required.'), { statusCode: 400 });
+        }
+        
+        const normalizedTitle = role.title.trim().toLowerCase();
+        if (roleTitles.has(normalizedTitle)) {
+          throw Object.assign(new Error(`Duplicate role '${role.title}' found in the same drive.`), { statusCode: 400 });
+        }
+        roleTitles.add(normalizedTitle);
+        
+        const minCTC = Number(role.minCTC);
+        const maxCTC = Number(role.maxCTC);
+        
+        if (isNaN(minCTC) || isNaN(maxCTC)) {
+          throw Object.assign(new Error('Minimum and Maximum CTC must be valid numbers.'), { statusCode: 400 });
+        }
+        
+        if (minCTC < 0) {
+          throw Object.assign(new Error('Minimum CTC must be >= 0.'), { statusCode: 400 });
+        }
+        
+        if (maxCTC < minCTC) {
+          throw Object.assign(new Error('Maximum CTC cannot be less than Minimum CTC.'), { statusCode: 400 });
+        }
+        
+        if (role.openings !== undefined && role.openings !== null) {
+          const openings = Number(role.openings);
+          if (isNaN(openings) || openings <= 0 || !Number.isInteger(openings)) {
+            throw Object.assign(new Error('Openings must be a positive integer.'), { statusCode: 400 });
+          }
+        }
       }
     }
 
@@ -303,12 +361,8 @@ export class RecruitmentDriveService {
       );
     }
 
-    if (!input.role?.trim()) {
-      throw Object.assign(new Error('role is required and cannot be empty.'), { statusCode: 400 });
-    }
-
-    if (input.ctc === undefined || input.ctc === null) {
-      throw Object.assign(new Error('ctc is required.'), { statusCode: 400 });
+    if (!input.roles || input.roles.length === 0) {
+      throw Object.assign(new Error('roles array is required and must contain at least one role.'), { statusCode: 400 });
     }
 
     if (!input.driveDate) {
@@ -336,9 +390,7 @@ export class RecruitmentDriveService {
     const drive = await prisma.recruitmentDrive.create({
       data: {
         companyId: company.id,
-        role: input.role.trim(),
         description: input.description?.trim() || null,
-        ctc: Number(input.ctc),
         jobLocation: input.jobLocation?.trim() || null,
         driveDate: normalizeDriveDate(input.driveDate),
         deadline: normalizeDeadline(input.deadline),
@@ -352,11 +404,29 @@ export class RecruitmentDriveService {
         allowedDepartments: input.allowedDepartments || [],
         requiresVerification: input.requiresVerification !== undefined ? input.requiresVerification : true,
         createdById: validUserId,
+        roles: {
+          create: input.roles.map(r => ({
+            title: r.title.trim(),
+            description: r.description?.trim() || null,
+            minCTC: Number(r.minCTC),
+            maxCTC: Number(r.maxCTC),
+            openings: r.openings !== undefined && r.openings !== null ? Number(r.openings) : null,
+            useCommonEligibility: r.useCommonEligibility !== undefined ? Boolean(r.useCommonEligibility) : true,
+            minCgpa: r.minCgpa !== undefined && r.minCgpa !== null ? Number(r.minCgpa) : null,
+            minTenthPercentage: r.minTenthPercentage !== undefined && r.minTenthPercentage !== null ? Number(r.minTenthPercentage) : null,
+            minTwelfthPercentage: r.minTwelfthPercentage !== undefined && r.minTwelfthPercentage !== null ? Number(r.minTwelfthPercentage) : null,
+            minD2dCgpa: r.minD2dCgpa !== undefined && r.minD2dCgpa !== null ? Number(r.minD2dCgpa) : null,
+            maxActiveBacklogs: r.maxActiveBacklogs !== undefined && r.maxActiveBacklogs !== null ? Number(r.maxActiveBacklogs) : null,
+            allowedStudentTypes: r.allowedStudentTypes && r.allowedStudentTypes.length > 0 ? r.allowedStudentTypes : undefined,
+            allowedDepartments: r.allowedDepartments || undefined,
+          }))
+        },
       },
       include: {
         company: {
           select: { id: true, name: true, imageUrl: true },
         },
+        roles: true,
         _count: {
           select: { applications: true },
         },
@@ -398,7 +468,7 @@ export class RecruitmentDriveService {
       const term = filters.search.trim();
       where.AND.push({
         OR: [
-          { role: { contains: term, mode: 'insensitive' } },
+          { roles: { some: { title: { contains: term, mode: 'insensitive' } } } },
           { company: { name: { contains: term, mode: 'insensitive' } } },
           { jobLocation: { contains: term, mode: 'insensitive' } },
         ]
@@ -425,6 +495,7 @@ export class RecruitmentDriveService {
         company: {
           select: { id: true, name: true, imageUrl: true },
         },
+        roles: true,
         _count: {
           select: { applications: true },
         },
@@ -465,6 +536,7 @@ export class RecruitmentDriveService {
         company: {
           select: { id: true, name: true, imageUrl: true, website: true },
         },
+        roles: true,
         _count: {
           select: { applications: true },
         },
@@ -532,9 +604,7 @@ export class RecruitmentDriveService {
     const dataToUpdate: any = {};
 
     if (input.companyId !== undefined) dataToUpdate.companyId = input.companyId.trim();
-    if (input.role !== undefined) dataToUpdate.role = input.role.trim();
     if (input.description !== undefined) dataToUpdate.description = input.description?.trim() || null;
-    if (input.ctc !== undefined) dataToUpdate.ctc = Number(input.ctc);
     if (input.jobLocation !== undefined) dataToUpdate.jobLocation = input.jobLocation?.trim() || null;
     if (input.driveDate !== undefined) dataToUpdate.driveDate = normalizeDriveDate(input.driveDate);
     if (input.deadline !== undefined) dataToUpdate.deadline = normalizeDeadline(input.deadline);
@@ -560,6 +630,65 @@ export class RecruitmentDriveService {
     if (input.allowedDepartments !== undefined) dataToUpdate.allowedDepartments = input.allowedDepartments;
     if (input.requiresVerification !== undefined) dataToUpdate.requiresVerification = input.requiresVerification;
 
+    // Roles handling: Upsert provided roles, delete missing ones
+    if (input.roles && input.roles.length > 0) {
+      // Find all existing applications for this drive to prevent deleting roles that have applications
+      const applications = await prisma.application.findMany({
+        where: { driveId: id },
+        select: { driveRoleId: true }
+      });
+      const rolesWithApplications = new Set(applications.map(a => a.driveRoleId));
+
+      const incomingRoleIds = input.roles.map(r => r.id).filter(id => id) as string[];
+      
+      // Prevent deleting roles that have applications
+      const existingRoles = await prisma.driveRole.findMany({ where: { driveId: id } });
+      for (const er of existingRoles) {
+        if (!incomingRoleIds.includes(er.id) && rolesWithApplications.has(er.id)) {
+          throw Object.assign(new Error(`Cannot remove role '${er.title}' because there are student applications tied to it.`), { statusCode: 409 });
+        }
+      }
+
+      dataToUpdate.roles = {
+        deleteMany: {
+          id: { notIn: incomingRoleIds }
+        },
+        upsert: input.roles.map(r => ({
+          where: { id: r.id || 'new_temp_id_impossible' },
+          create: {
+            title: r.title.trim(),
+            description: r.description?.trim() || null,
+            minCTC: Number(r.minCTC),
+            maxCTC: Number(r.maxCTC),
+            openings: r.openings !== undefined && r.openings !== null ? Number(r.openings) : null,
+            useCommonEligibility: r.useCommonEligibility !== undefined ? Boolean(r.useCommonEligibility) : true,
+            minCgpa: r.minCgpa !== undefined && r.minCgpa !== null ? Number(r.minCgpa) : null,
+            minTenthPercentage: r.minTenthPercentage !== undefined && r.minTenthPercentage !== null ? Number(r.minTenthPercentage) : null,
+            minTwelfthPercentage: r.minTwelfthPercentage !== undefined && r.minTwelfthPercentage !== null ? Number(r.minTwelfthPercentage) : null,
+            minD2dCgpa: r.minD2dCgpa !== undefined && r.minD2dCgpa !== null ? Number(r.minD2dCgpa) : null,
+            maxActiveBacklogs: r.maxActiveBacklogs !== undefined && r.maxActiveBacklogs !== null ? Number(r.maxActiveBacklogs) : null,
+            allowedStudentTypes: r.allowedStudentTypes && r.allowedStudentTypes.length > 0 ? r.allowedStudentTypes : undefined,
+            allowedDepartments: r.allowedDepartments || undefined,
+          },
+          update: {
+            title: r.title.trim(),
+            description: r.description?.trim() || null,
+            minCTC: Number(r.minCTC),
+            maxCTC: Number(r.maxCTC),
+            openings: r.openings !== undefined && r.openings !== null ? Number(r.openings) : null,
+            useCommonEligibility: r.useCommonEligibility !== undefined ? Boolean(r.useCommonEligibility) : true,
+            minCgpa: r.minCgpa !== undefined && r.minCgpa !== null ? Number(r.minCgpa) : null,
+            minTenthPercentage: r.minTenthPercentage !== undefined && r.minTenthPercentage !== null ? Number(r.minTenthPercentage) : null,
+            minTwelfthPercentage: r.minTwelfthPercentage !== undefined && r.minTwelfthPercentage !== null ? Number(r.minTwelfthPercentage) : null,
+            minD2dCgpa: r.minD2dCgpa !== undefined && r.minD2dCgpa !== null ? Number(r.minD2dCgpa) : null,
+            maxActiveBacklogs: r.maxActiveBacklogs !== undefined && r.maxActiveBacklogs !== null ? Number(r.maxActiveBacklogs) : null,
+            allowedStudentTypes: r.allowedStudentTypes && r.allowedStudentTypes.length > 0 ? r.allowedStudentTypes : undefined,
+            allowedDepartments: r.allowedDepartments || undefined,
+          }
+        }))
+      };
+    }
+
     const updated = await prisma.recruitmentDrive.update({
       where: { id },
       data: dataToUpdate,
@@ -567,6 +696,7 @@ export class RecruitmentDriveService {
         company: {
           select: { id: true, name: true, imageUrl: true },
         },
+        roles: true,
         _count: {
           select: { applications: true },
         },
@@ -599,7 +729,7 @@ export class RecruitmentDriveService {
     if (drive._count.applications > 0) {
       throw Object.assign(
         new Error(
-          `Cannot delete recruitment drive '${drive.role}' because it has ${drive._count.applications} associated student application(s). Deletion is blocked to protect applicant records.`
+          `Cannot delete recruitment drive because it has ${drive._count.applications} associated student application(s). Deletion is blocked to protect applicant records.`
         ),
         { statusCode: 409 }
       );
