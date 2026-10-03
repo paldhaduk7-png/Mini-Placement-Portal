@@ -21,7 +21,9 @@ export const Students: React.FC = () => {
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
   useEffect(() => {
-    loadStudents();
+    if (debouncedSearch.trim().length === 0 || debouncedSearch.trim().length >= 3) {
+      loadStudents();
+    }
   }, [debouncedSearch, statusFilter]);
 
   const loadStudents = async () => {

@@ -42,7 +42,9 @@ export const Applications: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    loadApplications();
+    if (debouncedSearch.trim().length === 0 || debouncedSearch.trim().length >= 3) {
+      loadApplications();
+    }
   }, [debouncedSearch, statusFilter]);
 
   const loadApplications = async () => {

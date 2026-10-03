@@ -21,7 +21,9 @@ export const Drives: React.FC = () => {
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
   useEffect(() => {
-    loadDrives();
+    if (debouncedSearch.trim().length === 0 || debouncedSearch.trim().length >= 3) {
+      loadDrives();
+    }
   }, [debouncedSearch]);
 
   const loadDrives = async () => {

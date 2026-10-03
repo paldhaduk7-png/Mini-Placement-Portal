@@ -55,7 +55,9 @@ export const History: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
 
   useEffect(() => {
-    loadCompletedDrives();
+    if (debouncedSearch.trim().length === 0 || debouncedSearch.trim().length >= 3) {
+      loadCompletedDrives();
+    }
   }, [debouncedSearch]);
 
   const loadCompletedDrives = async () => {
@@ -211,7 +213,7 @@ export const History: React.FC = () => {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="text-lg font-bold text-slate-900">
-                    {selectedDrive.company?.name || 'Company'} — {selectedDrive.role}
+                    {selectedDrive.company?.name || 'Company'} — {selectedDrive.roles && selectedDrive.roles.length > 0 ? (selectedDrive.roles.length === 1 ? selectedDrive.roles[0].title : 'Multiple Roles') : 'Role'}
                   </h2>
                   <Badge variant="success" className="text-[10px] font-bold">
                     COMPLETED
@@ -219,7 +221,7 @@ export const History: React.FC = () => {
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-slate-600">
                   <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                    {formatCurrencyLPA(selectedDrive.ctc)}
+                    {selectedDrive.roles && selectedDrive.roles.length > 0 ? (selectedDrive.roles.length === 1 ? formatCurrencyLPA(selectedDrive.roles[0].minCTC || 0) : 'Multiple Packages') : 'N/A'}
                   </span>
                   <span>•</span>
                   <span>Drive Date: <strong className="text-slate-800">{formatDate(selectedDrive.driveDate)}</strong></span>
@@ -471,7 +473,7 @@ export const History: React.FC = () => {
                         <TableCell>
                           <div className="flex flex-col">
                             <span className="font-medium text-slate-900 text-xs">
-                              {drive.role}
+                              {drive?.roles && drive?.roles.length > 0 ? (drive?.roles.length === 1 ? drive?.roles[0].title : 'Multiple Roles') : 'Role'}
                             </span>
                             {drive.jobLocation && (
                               <span className="text-[11px] text-slate-400">
@@ -482,7 +484,7 @@ export const History: React.FC = () => {
                         </TableCell>
                         <TableCell>
                           <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-xs border border-emerald-200">
-                            {formatCurrencyLPA(drive.ctc)}
+                            {drive?.roles && drive?.roles.length > 0 ? (drive?.roles.length === 1 ? formatCurrencyLPA(drive?.roles[0].minCTC || 0) : 'Multiple Packages') : 'N/A'}
                           </span>
                         </TableCell>
                         <TableCell className="text-xs text-slate-600 font-medium">

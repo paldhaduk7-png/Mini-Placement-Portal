@@ -312,11 +312,13 @@ export const CompanyDetails: React.FC = () => {
                     <div>
                       <div className="flex items-center gap-2">
                         <Badge className="bg-slate-700 text-white text-[10px] font-bold">COMPLETED DRIVE</Badge>
-                        <h2 className="text-lg font-bold text-slate-900">{selectedHistoryDrive.role}</h2>
+                        <h2 className="text-lg font-bold text-slate-900">
+                          {selectedHistoryDrive.roles && selectedHistoryDrive.roles.length > 0 ? (selectedHistoryDrive.roles.length === 1 ? selectedHistoryDrive.roles[0].title : 'Multiple Roles') : 'Role'}
+                        </h2>
                       </div>
                       <div className="flex flex-wrap items-center gap-4 mt-2 text-xs text-slate-600">
                         <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-                          {formatCurrencyLPA(selectedHistoryDrive.ctc)}
+                          {selectedHistoryDrive.roles && selectedHistoryDrive.roles.length > 0 ? (selectedHistoryDrive.roles.length === 1 ? formatCurrencyLPA(selectedHistoryDrive.roles[0].minCTC || 0) : 'Multiple Packages') : 'N/A'}
                         </span>
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3.5 w-3.5 text-slate-400" />
@@ -538,14 +540,14 @@ export const CompanyDetails: React.FC = () => {
                                 </TableCell>
                                 <TableCell>
                                   <div className="font-bold text-slate-900 text-sm">
-                                    {drive.role}
+                                    {drive?.roles && drive?.roles.length > 0 ? (drive?.roles.length === 1 ? drive?.roles[0].title : 'Multiple Roles') : 'Role'}
                                   </div>
                                   <div className="text-[11px] text-slate-500 mt-0.5">
                                     {drive.jobLocation || 'Campus Placement'}
                                   </div>
                                 </TableCell>
                                 <TableCell className="text-sm font-semibold text-emerald-700">
-                                  {formatCurrencyLPA(drive.ctc)}
+                                  {drive?.roles && drive?.roles.length > 0 ? (drive?.roles.length === 1 ? formatCurrencyLPA(drive?.roles[0].minCTC || 0) : 'Multiple Packages') : 'N/A'}
                                 </TableCell>
                                 <TableCell className="text-sm text-slate-600">
                                   <div className="flex items-center gap-1.5">

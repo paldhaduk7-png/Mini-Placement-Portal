@@ -47,7 +47,9 @@ export const Companies: React.FC = () => {
   const abortControllerRef = React.useRef<AbortController | null>(null);
 
   useEffect(() => {
-    loadCompanies();
+    if (debouncedSearch.trim().length === 0 || debouncedSearch.trim().length >= 3) {
+      loadCompanies();
+    }
   }, [debouncedSearch]);
 
   const loadCompanies = async () => {
