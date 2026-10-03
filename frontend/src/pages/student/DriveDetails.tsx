@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
@@ -24,9 +24,174 @@ import {
   IndianRupee,
   Check,
   X,
+  FileText,
+  Upload,
+  Loader2,
 } from 'lucide-react';
 import type { EligibilityResult } from '@/types/drive';
 
+// ── Apply Modal ──────────────────────────────────────────────────────────────
+interface ApplyModalProps {
+  companyName: string;
+  driveRole: string;
+  onClose: () => void;
+  onSubmit: (file: File) => Promise<void>;
+}
+
+const ApplyModal: React.FC<ApplyModalProps> = ({ companyName, driveRole, onClose, onSubmit }) => {
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    setFileError('');
+    if (!file) { setResumeFile(null); return; }
+
+    if (file.type !== 'application/pdf' || !file.name.toLowerCase().endsWith('.pdf')) {
+      setFileError('Only PDF files are allowed.');
+      setResumeFile(null);
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setFileError('Resume must be less than 5 MB.');
+      setResumeFile(null);
+      e.target.value = '';
+      return;
+    }
+    setResumeFile(file);
+  };
+
+  const handleSubmit = async () => {
+    if (!resumeFile) return;
+    setIsSubmitting(true);
+    try {
+      await onSubmit(resumeFile);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      onClick={(e) => { if (e.target === e.currentTarget && !isSubmitting) onClose(); }}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-900 to-blue-950 p-5 text-white">
+          <h2 className="text-base font-bold">Apply for {driveRole}</h2>
+          <p className="text-xs text-blue-200 mt-0.5">{companyName}</p>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-5">
+          {/* Company / Drive info */}
+          <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <span className="text-slate-400 font-medium block mb-0.5">Company</span>
+              <span className="font-semibold text-slate-800">{companyName}</span>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+              <span className="text-slate-400 font-medium block mb-0.5">Position</span>
+              <span className="font-semibold text-slate-800">{driveRole}</span>
+            </div>
+          </div>
+
+          {/* Resume Upload */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-slate-700 block">
+              Resume <span className="text-rose-500">*</span>
+            </label>
+
+            <div
+              onClick={() => !isSubmitting && fileInputRef.current?.click()}
+              className={`relative flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl p-5 cursor-pointer transition-colors
+                ${fileError ? 'border-rose-300 bg-rose-50' :
+                  resumeFile ? 'border-emerald-300 bg-emerald-50' :
+                  'border-slate-200 bg-slate-50 hover:border-blue-300 hover:bg-blue-50'}`}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".pdf,application/pdf"
+                className="hidden"
+                onChange={handleFileChange}
+                disabled={isSubmitting}
+              />
+
+              {resumeFile ? (
+                <div className="flex items-center gap-2 text-emerald-700">
+                  <FileText className="h-5 w-5 text-emerald-600 shrink-0" />
+                  <span className="text-sm font-semibold truncate max-w-[240px]">{resumeFile.name}</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); setResumeFile(null); if (fileInputRef.current) fileInputRef.current.value = ''; }}
+                    className="ml-auto p-0.5 rounded-full text-emerald-600 hover:bg-emerald-100"
+                    disabled={isSubmitting}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1 text-slate-400">
+                  <Upload className="h-6 w-6" />
+                  <span className="text-xs font-semibold">Click to choose PDF</span>
+                  <span className="text-[11px]">PDF only · Max 5 MB</span>
+                </div>
+              )}
+            </div>
+
+            {fileError && (
+              <p className="text-xs text-rose-600 flex items-center gap-1">
+                <X className="h-3.5 w-3.5" /> {fileError}
+              </p>
+            )}
+
+            {!fileError && (
+              <p className="text-[11px] text-slate-400">
+                Accepted format: PDF · Maximum size: 5 MB
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 pb-6 flex gap-3">
+          <Button
+            variant="outline"
+            className="flex-1 text-xs"
+            onClick={onClose}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={!resumeFile || isSubmitting}
+            className="flex-1 text-xs bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              <>
+                <Send className="h-3.5 w-3.5 mr-1.5" />
+                Submit Application
+              </>
+            )}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── Main DriveDetails Page ────────────────────────────────────────────────────
 export const DriveDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -40,6 +205,7 @@ export const DriveDetails: React.FC = () => {
   const [isApplying, setIsApplying] = useState(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
   const [activeTab, setActiveTab] = useState<'eligibility' | 'details'>('eligibility');
+  const [showApplyModal, setShowApplyModal] = useState(false);
 
   const loadEligibility = async (driveId: string) => {
     setIsLoading(true);
@@ -66,17 +232,18 @@ export const DriveDetails: React.FC = () => {
     (app) => app.driveId === id || app.drive?.id === id
   );
 
-  const handleApply = async () => {
+  const handleSubmitWithResume = async (resumeFile: File) => {
     if (!id) return;
     setIsApplying(true);
     try {
-      await applicationService.applyToDrive(id);
+      await applicationService.applyToDrive(id, resumeFile);
+      setShowApplyModal(false);
       setApplicationSubmitted(true);
-      toast.success('Successfully applied for the recruitment drive!');
+      toast.success('Application submitted successfully!');
       await dispatch(fetchMyApplications());
       await loadEligibility(id);
     } catch (err: any) {
-      toast.error(err.message || 'Application failed.');
+      toast.error(err.message || 'Application failed. Please try again.');
     } finally {
       setIsApplying(false);
     }
@@ -147,6 +314,7 @@ export const DriveDetails: React.FC = () => {
   // VIEW A: STEP 10 — DRIVE DETAILS & ELIGIBILITY CHECK
   // -------------------------------------------------------------
   return (
+    <>
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Back button */}
       <Button
@@ -530,7 +698,7 @@ export const DriveDetails: React.FC = () => {
                     </div>
                   ) : (
                     <Button
-                      onClick={handleApply}
+                      onClick={() => setShowApplyModal(true)}
                       disabled={!isEligible || isApplying || drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline)}
                       isLoading={isApplying}
                       className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all ${
@@ -591,6 +759,17 @@ export const DriveDetails: React.FC = () => {
         </CardContent>
       </Card>
     </div>
+
+    {/* Apply Modal — renders as overlay when showApplyModal is true */}
+    {showApplyModal && drive && company && (
+      <ApplyModal
+        companyName={company.name}
+        driveRole={drive.role}
+        onClose={() => setShowApplyModal(false)}
+        onSubmit={handleSubmitWithResume}
+      />
+    )}
+    </>
   );
 };
 

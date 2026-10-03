@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { EmptyState } from '@/components/common/EmptyState';
 import { formatDate, formatCurrencyLPA, formatInterviewTime } from '@/lib/utils';
-import { FileCheck, Building2, ExternalLink } from 'lucide-react';
+import { FileCheck, Building2, ExternalLink, FileText } from 'lucide-react';
 import type { ApplicationStatus } from '@/types/application';
 
 export const Applications: React.FC = () => {
@@ -84,6 +84,7 @@ export const Applications: React.FC = () => {
                   <TableHead className="text-xs font-semibold uppercase text-slate-500">Role</TableHead>
                   <TableHead className="text-xs font-semibold uppercase text-slate-500">Package (CTC)</TableHead>
                   <TableHead className="text-xs font-semibold uppercase text-slate-500">Applied On</TableHead>
+                  <TableHead className="text-xs font-semibold uppercase text-slate-500">Resume</TableHead>
                   <TableHead className="text-xs font-semibold uppercase text-slate-500">Status</TableHead>
                   <TableHead className="text-right text-xs font-semibold uppercase text-slate-500">Drive Info</TableHead>
                 </TableRow>
@@ -135,6 +136,21 @@ export const Applications: React.FC = () => {
                         </TableCell>
                         <TableCell className="text-sm text-slate-600">
                           {formatDate(app.appliedAt)}
+                        </TableCell>
+                        <TableCell>
+                          {app.resumeUrl ? (
+                            <a
+                              href={app.resumeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:underline bg-blue-50 px-2.5 py-1 rounded-md"
+                            >
+                              <FileText className="h-3.5 w-3.5" />
+                              View
+                            </a>
+                          ) : (
+                            <span className="text-xs text-slate-400 font-medium">N/A</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-col gap-2 items-start">
