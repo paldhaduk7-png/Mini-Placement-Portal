@@ -514,13 +514,13 @@ export const StudentDashboard: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-600 flex-wrap">
                           <span className="font-medium text-slate-800">
-                            {drive?.role || 'Role N/A'}
+                            {app.driveRole?.title || 'Role N/A'}
                           </span>
-                          {drive?.ctc != null && (
+                          {app.driveRole?.maxCTC != null && (
                             <>
                               <span className="text-slate-300">•</span>
                               <span className="font-semibold text-slate-700">
-                                {formatCurrencyLPA(drive.ctc)}
+                                {formatCurrencyLPA(app.driveRole.maxCTC)}
                               </span>
                             </>
                           )}
@@ -625,10 +625,14 @@ export const StudentDashboard: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium text-slate-800 text-sm">
-                          {drive.role}
+                          {drive?.roles && drive?.roles.length > 0 ? (drive?.roles.length === 1 ? drive?.roles[0].title : 'Multiple Roles') : 'Multiple Roles'}
                         </TableCell>
                         <TableCell className="text-sm font-semibold text-slate-700">
-                          {formatCurrencyLPA(drive.ctc || 0)}
+                          {drive?.roles && drive?.roles.length > 0 ? (
+                            drive?.roles.length === 1 
+                              ? formatCurrencyLPA(drive?.roles[0].minCTC || 0) 
+                              : 'Varies by role'
+                          ) : 'Varies'}
                         </TableCell>
                         <TableCell className="text-sm text-slate-600">
                           {drive.deadline ? formatDate(drive.deadline) : 'N/A'}
@@ -676,7 +680,7 @@ export const StudentDashboard: React.FC = () => {
                     Interview Details
                   </h3>
                   <p className="text-xs text-slate-500">
-                    {selectedInterviewModal.app.drive?.company?.name || 'Company'} — {selectedInterviewModal.app.drive?.role || 'Role'}
+                    {selectedInterviewModal.app.drive?.company?.name || 'Company'} — {selectedInterviewModal.app.driveRole?.title || 'Role'}
                   </p>
                 </div>
               </div>

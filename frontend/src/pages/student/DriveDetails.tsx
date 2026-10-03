@@ -33,12 +33,12 @@ import type { EligibilityResult } from '@/types/drive';
 // ── Apply Modal ──────────────────────────────────────────────────────────────
 interface ApplyModalProps {
   companyName: string;
-  driveRole: string;
+  driveRoleTitle: string;
   onClose: () => void;
   onSubmit: (file: File) => Promise<void>;
 }
 
-const ApplyModal: React.FC<ApplyModalProps> = ({ companyName, driveRole, onClose, onSubmit }) => {
+const ApplyModal: React.FC<ApplyModalProps> = ({ companyName, driveRoleTitle, onClose, onSubmit }) => {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +82,7 @@ const ApplyModal: React.FC<ApplyModalProps> = ({ companyName, driveRole, onClose
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-900 to-blue-950 p-5 text-white">
-          <h2 className="text-base font-bold">Apply for {driveRole}</h2>
+          <h2 className="text-base font-bold">Apply for {driveRoleTitle}</h2>
           <p className="text-xs text-blue-200 mt-0.5">{companyName}</p>
         </div>
 
@@ -96,7 +96,7 @@ const ApplyModal: React.FC<ApplyModalProps> = ({ companyName, driveRole, onClose
             </div>
             <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
               <span className="text-slate-400 font-medium block mb-0.5">Position</span>
-              <span className="font-semibold text-slate-800">{driveRole}</span>
+              <span className="font-semibold text-slate-800">{driveRoleTitle}</span>
             </div>
           </div>
 
@@ -204,7 +204,8 @@ export const DriveDetails: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
   const [applicationSubmitted, setApplicationSubmitted] = useState(false);
-  const [activeTab, setActiveTab] = useState<'eligibility' | 'details'>('eligibility');
+  const [activeTab, setActiveTab] = useState<'eligibility' | 'details' | 'roles'>('roles');
+  const [selectedRoleId, setSelectedRoleId] = useState<string | null>(null);
   const [showApplyModal, setShowApplyModal] = useState(false);
 
   const loadEligibility = async (driveId: string) => {
@@ -233,10 +234,10 @@ export const DriveDetails: React.FC = () => {
   );
 
   const handleSubmitWithResume = async (resumeFile: File) => {
-    if (!id) return;
+    if (!id || !selectedRoleId) return;
     setIsApplying(true);
     try {
-      await applicationService.applyToDrive(id, resumeFile);
+      await applicationService.applyToDrive(id, selectedRoleId, resumeFile);
       setShowApplyModal(false);
       setApplicationSubmitted(true);
       toast.success('Application submitted successfully!');
@@ -287,7 +288,7 @@ export const DriveDetails: React.FC = () => {
             <p className="text-sm text-slate-600 mt-2 max-w-sm mx-auto">
               You have successfully applied to the{' '}
               <strong className="text-slate-900">
-                {company?.name || 'Company'} — {drive?.role || 'Role'}
+                {company?.name || 'Company'} — Recruitment Drive
               </strong>{' '}
               recruitment drive.
             </p>
@@ -344,15 +345,9 @@ export const DriveDetails: React.FC = () => {
             )}
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white">
-                {company?.name || 'Company'} — {drive?.role || 'Recruitment Drive'}
+                {company?.name || 'Company'} — Recruitment Drive
               </h1>
               <div className="flex flex-wrap items-center gap-4 mt-1.5 text-xs text-blue-100/80">
-                {drive?.ctc && (
-                  <span className="flex items-center gap-1 font-semibold text-emerald-300">
-                    <IndianRupee className="h-3.5 w-3.5" />
-                    CTC: {formatCurrencyLPA(drive.ctc)}
-                  </span>
-                )}
                 {drive?.jobLocation && (
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3.5 w-3.5 text-blue-300" />
@@ -444,6 +439,16 @@ export const DriveDetails: React.FC = () => {
         )}
 
         <div className="border-b border-slate-200 bg-slate-50 px-6 flex gap-6">
+          <button
+            onClick={() => setActiveTab('roles')}
+            className={`py-3 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
+              activeTab === 'roles'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-700'
+            }`}
+          >
+            Job Roles & Apply
+          </button>
           <button
             onClick={() => setActiveTab('eligibility')}
             className={`py-3 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
@@ -624,99 +629,58 @@ export const DriveDetails: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-
-              {/* Action Button Section */}
-              <div className="pt-2">
-                {drive?.status === 'COMPLETED' ? (
-                  existingApplication ? (
-                    <div className="p-4 rounded-xl border flex flex-col gap-3
-                      ${existingApplication.status === 'SELECTED' ? 'border-emerald-200 bg-emerald-50' :
-                        existingApplication.status === 'REJECTED' ? 'border-rose-200 bg-rose-50' :
-                        'border-blue-200 bg-blue-50'}">
-                      <div className="flex items-center gap-2 mb-2 pb-2 border-b border-slate-200">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <span className="text-xs font-bold text-slate-800">Drive Completed</span>
-                      </div>
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-                        <div className="flex flex-col gap-1">
-                          {existingApplication.status === 'SELECTED' && (
-                            <>
-                              <span className="text-sm font-bold text-emerald-800">🎉 Selected</span>
-                              <span className="text-xs text-emerald-700">You were selected for this recruitment drive.</span>
-                            </>
-                          )}
-                          {existingApplication.status === 'REJECTED' && (
-                            <>
-                              <span className="text-sm font-bold text-rose-800">✕ Rejected</span>
-                              <span className="text-xs text-rose-700">Your application was not selected for this recruitment drive.</span>
-                            </>
-                          )}
-                          {existingApplication.status === 'SHORTLISTED' && (
-                            <>
-                              <span className="text-sm font-bold text-blue-800">⏳ Shortlisted</span>
-                              <span className="text-xs text-blue-700">You were shortlisted for this recruitment drive.<br/>The final result is not yet available.</span>
-                            </>
-                          )}
-                          {existingApplication.status === 'APPLIED' && (
-                            <>
-                              <span className="text-sm font-bold text-blue-800">⏳ Application Submitted</span>
-                              <span className="text-xs text-blue-700">The recruitment drive has ended.<br/>The final application status is not yet available.</span>
-                            </>
-                          )}
-                        </div>
-                        <Button variant="outline" size="sm" asChild className="text-xs shrink-0 bg-white">
-                          <Link to="/student/applications">View Application</Link>
-                        </Button>
-                      </div>
+            </div>
+          ) : activeTab === 'roles' ? (
+            <div className="space-y-4">
+              <h4 className="text-sm font-bold text-slate-800 mb-4">Available Roles</h4>
+              {drive?.roles && drive.roles.length > 0 ? drive.roles.map((r) => (
+                <div key={r.id} className="p-4 border border-slate-200 rounded-xl bg-white shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h5 className="font-bold text-slate-900">{r.title}</h5>
+                    <div className="text-xs text-slate-600 mt-1 flex items-center gap-3">
+                      <span className="font-semibold text-emerald-600">
+                        {r.minCTC === r.maxCTC ? formatCurrencyLPA(r.minCTC) : `${formatCurrencyLPA(r.minCTC)} - ${formatCurrencyLPA(r.maxCTC)}`}
+                      </span>
+                      {r.openings && <span>• {r.openings} Openings</span>}
                     </div>
-                  ) : (
-                    <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                        <span className="text-sm font-bold text-slate-800">Drive Completed</span>
-                      </div>
-                      <span className="text-xs text-slate-600">The recruitment event has already taken place.</span>
-                    </div>
-                  )
-                ) : (
-                  existingApplication ? (
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <FileCheck className="h-5 w-5 text-blue-600" />
-                        <div>
-                          <span className="text-xs font-bold text-slate-900 block">
-                            You have already applied for this position.
-                          </span>
-                          <span className="text-[11px] text-slate-500">
-                            Current status: <Badge variant="secondary" className="text-[10px]">{existingApplication.status}</Badge>
-                          </span>
+                  </div>
+                  <div className="shrink-0 flex items-center gap-3">
+                    {existingApplication ? (
+                      existingApplication.driveRoleId === r.id ? (
+                        <div className="flex items-center gap-3">
+                           <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+                             Applied ({existingApplication.status})
+                           </Badge>
+                           <Button variant="outline" size="sm" asChild className="text-xs shrink-0 bg-white">
+                             <Link to="/student/applications">View Application</Link>
+                           </Button>
                         </div>
-                      </div>
-                      <Button variant="outline" size="sm" asChild className="text-xs shrink-0 bg-white">
-                        <Link to="/student/applications">View Application</Link>
+                      ) : (
+                        <span className="text-xs font-medium text-slate-400">Cannot apply to multiple roles</span>
+                      )
+                    ) : (
+                      <Button
+                        onClick={() => { setSelectedRoleId(r.id); setShowApplyModal(true); }}
+                        disabled={!isEligible || isApplying || drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline)}
+                        className={`text-xs px-4 ${
+                          isEligible && drive?.status !== 'CANCELLED' && !isDeadlinePassed(drive?.deadline)
+                            ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md'
+                            : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
+                        }`}
+                        size="sm"
+                      >
+                        {drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline)
+                          ? 'Closed'
+                          : isEligible
+                          ? 'Apply'
+                          : 'Not Eligible'}
                       </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={() => setShowApplyModal(true)}
-                      disabled={!isEligible || isApplying || drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline)}
-                      isLoading={isApplying}
-                      className={`w-full py-3.5 text-xs font-bold rounded-xl transition-all ${
-                        isEligible && drive?.status !== 'CANCELLED' && !isDeadlinePassed(drive?.deadline)
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer'
-                          : 'bg-slate-200 text-slate-400 cursor-not-allowed border border-slate-300'
-                      }`}
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      {drive?.status === 'CANCELLED' || isDeadlinePassed(drive?.deadline)
-                        ? 'Applications Closed'
-                        : isEligible
-                        ? 'Apply Now'
-                        : 'Cannot Apply (Criteria Not Met)'}
-                    </Button>
-                  )
-                )}
-              </div>
+                    )}
+                  </div>
+                </div>
+              )) : (
+                <p className="text-xs text-slate-500">No roles available for this drive.</p>
+              )}
             </div>
           ) : (
             <div className="space-y-4">
@@ -724,7 +688,7 @@ export const DriveDetails: React.FC = () => {
                 <h4 className="text-sm font-bold text-slate-800">Job Description & Role</h4>
                 <p className="text-xs text-slate-600 mt-1.5 leading-relaxed">
                   {drive?.description ||
-                    `Join ${company?.name || 'the team'} as a ${drive?.role || 'Engineer'}. Apply through the placement portal to schedule technical rounds and interviews.`}
+                    `Join ${company?.name || 'the team'} as a ${drive?.roles || 'Engineer'}. Apply through the placement portal to schedule technical rounds and interviews.`}
                 </p>
               </div>
 
@@ -742,12 +706,6 @@ export const DriveDetails: React.FC = () => {
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block font-medium">Package (CTC)</span>
-                  <span className="font-bold text-emerald-600">
-                    {drive?.ctc ? formatCurrencyLPA(drive.ctc) : 'Disclosed during interview'}
-                  </span>
-                </div>
-                <div>
                   <span className="text-slate-400 block font-medium">Job Location</span>
                   <span className="font-semibold text-slate-800">
                     {drive?.jobLocation || 'Campus / Multiple Locations'}
@@ -758,17 +716,16 @@ export const DriveDetails: React.FC = () => {
           )}
         </CardContent>
       </Card>
+      {/* Apply Modal — renders as overlay when showApplyModal is true */}
+      {showApplyModal && drive && company && (
+        <ApplyModal
+          companyName={company.name}
+          driveRoleTitle={drive.roles?.find(r => r.id === selectedRoleId)?.title || ''}
+          onClose={() => setShowApplyModal(false)}
+          onSubmit={handleSubmitWithResume}
+        />
+      )}
     </div>
-
-    {/* Apply Modal — renders as overlay when showApplyModal is true */}
-    {showApplyModal && drive && company && (
-      <ApplyModal
-        companyName={company.name}
-        driveRole={drive.role}
-        onClose={() => setShowApplyModal(false)}
-        onSubmit={handleSubmitWithResume}
-      />
-    )}
     </>
   );
 };

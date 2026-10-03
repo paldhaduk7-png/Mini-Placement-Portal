@@ -30,9 +30,9 @@ export const fetchMyApplications = createAsyncThunk(
 
 export const applyForDrive = createAsyncThunk(
   'application/applyForDrive',
-  async ({ driveId, resumeFile }: { driveId: string; resumeFile: File }, { rejectWithValue, dispatch }) => {
+  async ({ driveId, driveRoleId, resumeFile }: { driveId: string, driveRoleId: string, resumeFile: File }, { rejectWithValue, dispatch }) => {
     try {
-      const response = await applicationService.applyToDrive(driveId, resumeFile)
+      const response = await applicationService.applyToDrive(driveId, driveRoleId, resumeFile)
       // Refresh applications list
       dispatch(fetchMyApplications())
       return response

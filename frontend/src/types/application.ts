@@ -1,4 +1,4 @@
-import { RecruitmentDrive } from './drive'
+import { RecruitmentDrive, DriveRole } from './drive'
 import { Student } from './student'
 
 export type ApplicationStatus =
@@ -26,6 +26,8 @@ export interface Application {
 
   student?: Student
   drive?: RecruitmentDrive
+  driveRoleId?: string
+  driveRole?: DriveRole
   interviews?: Interview[]
 }
 

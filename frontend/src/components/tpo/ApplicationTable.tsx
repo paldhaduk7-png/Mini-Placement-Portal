@@ -97,7 +97,7 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                   </div>
                 </TableCell>
                 <TableCell className="text-sm font-medium text-slate-700">
-                  {drive?.role || (drive as any)?.jobRole || 'N/A'}
+                  {app.driveRole?.title || 'N/A'}
                 </TableCell>
                 <TableCell className="text-sm text-slate-600">
                   {formatDate(app.appliedAt)}

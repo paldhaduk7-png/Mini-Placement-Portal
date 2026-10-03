@@ -6,9 +6,8 @@ export type DriveStatus = 'UPCOMING' | 'ONGOING' | 'COMPLETED' | 'CANCELLED'
 export interface RecruitmentDrive {
   id: string
   companyId: string
-  role: string
+  roles?: DriveRole[]
   description?: string | null
-  ctc: number
   jobLocation?: string | null
   driveDate: string
   deadline: string
@@ -38,4 +37,13 @@ export interface EligibilityResult {
   eligible: boolean
   reasons: string[]
   drive?: RecruitmentDrive
+}
+
+export interface DriveRole {
+  id: string
+  driveId?: string
+  title: string
+  minCTC: number
+  maxCTC: number
+  openings?: number | null
 }

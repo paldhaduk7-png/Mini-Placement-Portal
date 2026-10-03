@@ -129,10 +129,10 @@ export const Applications: React.FC = () => {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium text-slate-800 text-sm">
-                          {drive?.role || 'Engineer'}
+                          {app.driveRole?.title || 'Engineer'}
                         </TableCell>
                         <TableCell className="text-sm font-semibold text-slate-700">
-                          {drive?.ctc ? formatCurrencyLPA(drive.ctc) : 'N/A'}
+                          {app.driveRole?.maxCTC ? formatCurrencyLPA(app.driveRole.maxCTC) : 'N/A'}
                         </TableCell>
                         <TableCell className="text-sm text-slate-600">
                           {formatDate(app.appliedAt)}

@@ -8,6 +8,14 @@ import { formatCurrencyLPA, formatDate, isDeadlinePassed } from '../../lib/utils
 
 export function DriveCard({ drive }: { drive: RecruitmentDrive }) {
   const isExpired = isDeadlinePassed(drive.deadline)
+  
+  const rolesText = drive.roles && drive.roles.length > 0 
+    ? (drive.roles.length === 1 ? drive.roles[0].title : `${drive.roles[0].title} & ${drive.roles.length - 1} more`)
+    : 'Multiple Roles'
+    
+  const minCTC = drive.roles && drive.roles.length > 0 ? Math.min(...drive.roles.map(r => r.minCTC)) : 0
+  const maxCTC = drive.roles && drive.roles.length > 0 ? Math.max(...drive.roles.map(r => r.maxCTC)) : 0
+  const ctcText = minCTC === maxCTC ? formatCurrencyLPA(minCTC) : `${formatCurrencyLPA(minCTC)} - ${formatCurrencyLPA(maxCTC)}`
 
   return (
     <Card className="hover:shadow-md transition-all duration-200 border-slate-200/90 group">
@@ -31,7 +39,7 @@ export function DriveCard({ drive }: { drive: RecruitmentDrive }) {
                 <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-1">
                   {drive.company?.name || 'Company'}
                 </h4>
-                <p className="text-xs text-slate-500 font-medium line-clamp-1">{drive.role}</p>
+                <p className="text-xs text-slate-500 font-medium line-clamp-1">{rolesText}</p>
               </div>
             </div>
 
@@ -45,7 +53,7 @@ export function DriveCard({ drive }: { drive: RecruitmentDrive }) {
             <div className="flex items-center justify-between">
               <span className="text-slate-400">CTC Package:</span>
               <span className="font-bold text-slate-900 text-sm text-blue-700">
-                {formatCurrencyLPA(drive.ctc)}
+                {ctcText}
               </span>
             </div>
             {drive.jobLocation && (

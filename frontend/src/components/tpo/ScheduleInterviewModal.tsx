@@ -151,8 +151,8 @@ export const ScheduleInterviewModal: React.FC<ScheduleInterviewModalProps> = ({
                 <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium text-[11px]">
                   {application.drive?.company?.name || 'Company'}
                 </span>
-                {application.drive?.role && (
-                  <span className="text-[11px] text-slate-400">({application.drive.role})</span>
+                {application.driveRole?.title && (
+                  <span className="text-[11px] text-slate-400">({application.driveRole?.title || 'Role'})</span>
                 )}
               </div>
             </div>

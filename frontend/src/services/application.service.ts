@@ -5,9 +5,11 @@ export const applicationService = {
   // Student apply to drive — sends multipart/form-data with the resume PDF
   async applyToDrive(
     driveId: string,
+    driveRoleId: string,
     resumeFile: File
   ): Promise<{ success: boolean; message: string; data: any }> {
     const formData = new FormData()
+    formData.append('driveRoleId', driveRoleId)
     formData.append('resume', resumeFile)
     const response = await api.post(`/student/drives/${driveId}/apply`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },

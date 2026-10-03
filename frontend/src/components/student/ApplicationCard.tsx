@@ -25,7 +25,7 @@ export function ApplicationCard({ application }: { application: Application }) {
           )}
           <div>
             <h4 className="font-semibold text-slate-900 text-sm">{company?.name || 'Company'}</h4>
-            <p className="text-xs text-slate-500 font-medium">{drive?.role || 'Role'}</p>
+            <p className="text-xs text-slate-500 font-medium">{application.driveRole?.title || 'Role'}</p>
             <div className="flex items-center gap-3 mt-1 text-[11px] text-slate-400">
               <span className="flex items-center gap-1">
                 <Calendar className="h-3 w-3" /> Applied on {formatDate(application.appliedAt)}

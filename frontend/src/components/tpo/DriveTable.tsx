@@ -63,10 +63,10 @@ export const DriveTable: React.FC<DriveTableProps> = ({ drives }) => {
                   </div>
                 </TableCell>
                 <TableCell className="font-medium text-slate-800 text-sm">
-                  {drive.role || (drive as any).jobRole}
+                  {drive.roles && drive.roles.length > 0 ? (drive.roles.length === 1 ? drive.roles[0].title : 'Multiple Roles') : 'Role'}
                 </TableCell>
                 <TableCell className="text-sm font-semibold text-slate-700">
-                  {formatCurrencyLPA(drive.ctc ?? (drive as any).ctcLpa ?? 0)}
+                  {drive.roles && drive.roles.length > 0 ? (drive.roles.length === 1 ? formatCurrencyLPA(drive.roles[0].minCTC || 0) : 'Multiple Packages') : 'N/A'}
                 </TableCell>
                 <TableCell className="text-sm text-slate-600">
                   <div className="flex items-center gap-1.5">

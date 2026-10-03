@@ -55,7 +55,7 @@ export const Drives: React.FC = () => {
   const displayDrives = Array.from(allDrivesMap.values()).filter((d) => {
     const term = searchTerm.toLowerCase();
     const companyMatch = d.company?.name?.toLowerCase().includes(term);
-    const roleMatch = d.role?.toLowerCase().includes(term);
+    const roleMatch = d.roles?.some(r => r.title.toLowerCase().includes(term));
     const locationMatch = d.jobLocation?.toLowerCase().includes(term);
     return !searchTerm || companyMatch || roleMatch || locationMatch;
   });
