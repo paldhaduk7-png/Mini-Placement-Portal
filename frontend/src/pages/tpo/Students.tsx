@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import studentService from '@/services/student.service';
 import { StudentTable } from '@/components/tpo/StudentTable';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
@@ -10,39 +11,54 @@ import type { Student } from '@/types/student';
 export const Students: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 500);
+  
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   useEffect(() => {
     loadStudents();
-  }, []);
+  }, [debouncedSearch, statusFilter]);
 
   const loadStudents = async () => {
-    setIsLoading(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    if (students.length === 0) {
+      setIsLoading(true);
+    } else {
+      setIsSearching(true);
+    }
+    
     try {
-      const res = await studentService.getAllStudents();
+      const params: any = {};
+      if (debouncedSearch.trim().length >= 3) {
+        params.search = debouncedSearch.trim();
+      }
+      if (statusFilter !== 'ALL') {
+        params.verificationStatus = statusFilter;
+      }
+
+      const res = await studentService.getAllStudents(params, controller.signal);
       const list = Array.isArray(res) ? res : res?.data || [];
       setStudents(list);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return; // Ignore canceled requests
+      }
       console.error('Failed to load students:', err);
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
   };
-
-  const filteredStudents = students.filter((s) => {
-    const term = searchTerm.toLowerCase();
-    const fullNameMatches = s.fullName ? s.fullName.toLowerCase().includes(term) : false;
-    const deptMatches = s.department ? s.department.toLowerCase().includes(term) : false;
-    const emailMatches = s.user?.email ? s.user.email.toLowerCase().includes(term) : false;
-    
-    const matchesSearch = fullNameMatches || deptMatches || emailMatches;
-
-    const matchesStatus =
-      statusFilter === 'ALL' || s.verificationStatus === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
 
   if (isLoading && students.length === 0) {
     return (
@@ -78,28 +94,40 @@ export const Students: React.FC = () => {
             <option value="REJECTED">Rejected</option>
           </select>
 
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full sm:w-64 flex items-center">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               type="text"
               placeholder="Search by name, email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 text-xs h-9"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 pr-14 text-xs h-9"
             />
+            <div className="absolute right-2 flex items-center gap-1">
+              {isSearching && <div className="h-3 w-3 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin" />}
+              {searchInput && !isSearching && (
+                <button
+                  type="button"
+                  onClick={() => setSearchInput('')}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Content */}
-      {filteredStudents.length === 0 ? (
+      {students.length === 0 && !isLoading ? (
         <EmptyState
           icon={Users}
           title="No Students Found"
           description="No student profiles matched your search and filter criteria."
         />
       ) : (
-        <StudentTable students={filteredStudents} />
+        <StudentTable students={students} />
       )}
     </div>
   );

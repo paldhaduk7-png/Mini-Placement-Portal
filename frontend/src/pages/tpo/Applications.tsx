@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useDebounce } from '@/hooks/useDebounce';
 import applicationService from '@/services/application.service';
 import { ApplicationTable } from '@/components/tpo/ApplicationTable';
 import { ScheduleInterviewModal } from '@/components/tpo/ScheduleInterviewModal';
@@ -13,16 +14,22 @@ import type { Application, ApplicationStatus, Interview } from '@/types/applicat
 export const Applications: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSearching, setIsSearching] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
   const exportMenuRef = useRef<HTMLDivElement>(null);
   const [updatingAppIds, setUpdatingAppIds] = useState<Record<string, boolean>>({});
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 500);
+  
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [scheduleApp, setScheduleApp] = useState<{
     application: Application;
     existingInterview?: Interview;
   } | null>(null);
+
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -36,18 +43,41 @@ export const Applications: React.FC = () => {
 
   useEffect(() => {
     loadApplications();
-  }, []);
+  }, [debouncedSearch, statusFilter]);
 
   const loadApplications = async () => {
-    setIsLoading(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    if (applications.length === 0) {
+      setIsLoading(true);
+    } else {
+      setIsSearching(true);
+    }
+    
     try {
-      const res = await applicationService.getTpoApplications();
+      const params: any = {};
+      if (debouncedSearch.trim().length >= 3) {
+        params.search = debouncedSearch.trim();
+      }
+      if (statusFilter !== 'ALL') {
+        params.status = statusFilter.toUpperCase();
+      }
+
+      const res = await applicationService.getTpoApplications(params, controller.signal);
       const list = Array.isArray(res) ? res : res?.data || [];
       setApplications(list);
     } catch (err: any) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return; // Ignore canceled requests
+      }
       toast.error(err.message || 'Failed to load applications.');
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -184,7 +214,7 @@ export const Applications: React.FC = () => {
   const handleExportCsv = async (mode: 'all' | 'filtered') => {
     setIsExportMenuOpen(false);
 
-    if (mode === 'filtered' && filteredApplications.length === 0) {
+    if (mode === 'filtered' && applications.length === 0) {
       toast.error('No applications available to export.');
       return;
     }
@@ -200,8 +230,8 @@ export const Applications: React.FC = () => {
         mode === 'filtered'
           ? {
               status: statusFilter !== 'ALL' ? statusFilter : undefined,
-              search: searchTerm.trim() ? searchTerm.trim() : undefined,
-              applicationIds: filteredApplications.map((a) => a.id).join(','),
+              search: debouncedSearch.trim().length >= 3 ? debouncedSearch.trim() : undefined,
+              applicationIds: applications.map((a) => a.id).join(','),
             }
           : undefined;
 
@@ -243,38 +273,6 @@ export const Applications: React.FC = () => {
     }
   };
 
-  const filteredApplications = useMemo(() => {
-    return applications.filter((app) => {
-      // 1. Status Filter
-      const currentFilter = statusFilter.toUpperCase();
-      const matchesStatus =
-        currentFilter === 'ALL' ||
-        (app.status || '').toUpperCase() === currentFilter;
-
-      if (!matchesStatus) return false;
-
-      // 2. Search Filter
-      const term = searchTerm.trim().toLowerCase();
-      if (!term) return true;
-
-      const studentName = app.student?.fullName?.toLowerCase() || '';
-      const companyName = app.drive?.company?.name?.toLowerCase() || '';
-      const roleName = app.drive?.role?.toLowerCase() || '';
-      const email = app.student?.user?.email?.toLowerCase() || '';
-      const phone = app.student?.phone?.toLowerCase() || '';
-      const department = app.student?.department?.toLowerCase() || '';
-
-      return (
-        studentName.includes(term) ||
-        companyName.includes(term) ||
-        roleName.includes(term) ||
-        email.includes(term) ||
-        phone.includes(term) ||
-        department.includes(term)
-      );
-    });
-  }, [applications, statusFilter, searchTerm]);
-
   if (isLoading && applications.length === 0) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -310,15 +308,27 @@ export const Applications: React.FC = () => {
             <option value="REJECTED">Rejected</option>
           </select>
 
-          <div className="relative w-full sm:w-64">
+          <div className="relative w-full sm:w-64 flex items-center">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               type="text"
               placeholder="Search student, company..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 text-xs h-9"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 pr-14 text-xs h-9"
             />
+            <div className="absolute right-2 flex items-center gap-1">
+              {isSearching && <div className="h-3 w-3 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin" />}
+              {searchInput && !isSearching && (
+                <button
+                  type="button"
+                  onClick={() => setSearchInput('')}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Export CSV Dropdown */}
@@ -359,13 +369,13 @@ export const Applications: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  disabled={filteredApplications.length === 0 || isExporting}
+                  disabled={applications.length === 0 || isExporting}
                   onClick={() => handleExportCsv('filtered')}
                   className="w-full text-left px-3.5 py-2 text-xs text-slate-700 hover:bg-slate-50 hover:text-blue-600 flex items-center justify-between transition-colors cursor-pointer border-t border-slate-100/80 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-slate-700"
                 >
                   <span className="font-medium">Export Filtered Applications</span>
                   <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded font-semibold">
-                    {filteredApplications.length}
+                    {applications.length}
                   </span>
                 </button>
               </div>
@@ -375,7 +385,7 @@ export const Applications: React.FC = () => {
       </div>
 
       {/* Content */}
-      {filteredApplications.length === 0 ? (
+      {applications.length === 0 && !isLoading ? (
         <EmptyState
           icon={FileCheck}
           title="No applications found"
@@ -383,7 +393,7 @@ export const Applications: React.FC = () => {
         />
       ) : (
         <ApplicationTable
-          applications={filteredApplications}
+          applications={applications}
           onStatusChange={handleStatusChange}
           onScheduleInterview={(app, interview) => setScheduleApp({ application: app, existingInterview: interview })}
           updatingAppIds={updatingAppIds}

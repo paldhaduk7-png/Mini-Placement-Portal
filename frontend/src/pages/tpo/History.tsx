@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDebounce } from '@/hooks/useDebounce';
 import driveService from '@/services/drive.service';
 import applicationService from '@/services/application.service';
 import { Button } from '@/components/ui/button';
@@ -37,8 +38,14 @@ import type { Application, ApplicationStatus } from '@/types/application';
 export const History: React.FC = () => {
   const [completedDrives, setCompletedDrives] = useState<RecruitmentDrive[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 500);
+  
   const [companyFilter, setCompanyFilter] = useState('ALL');
+  
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   // Drilldown state: when TPO clicks "View Students" for a completed drive
   const [selectedDrive, setSelectedDrive] = useState<RecruitmentDrive | null>(null);
@@ -49,12 +56,28 @@ export const History: React.FC = () => {
 
   useEffect(() => {
     loadCompletedDrives();
-  }, []);
+  }, [debouncedSearch]);
 
   const loadCompletedDrives = async () => {
-    setIsLoading(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    if (completedDrives.length === 0) {
+      setIsLoading(true);
+    } else {
+      setIsSearching(true);
+    }
+    
     try {
-      const res = await driveService.getAllDrives();
+      const params: any = {};
+      if (debouncedSearch.trim().length >= 3) {
+        params.search = debouncedSearch.trim();
+      }
+
+      const res = await driveService.getAllDrives(params, controller.signal);
       const allDrives: RecruitmentDrive[] = Array.isArray(res) ? res : (res as any)?.data || [];
 
       const now = new Date();
@@ -68,10 +91,14 @@ export const History: React.FC = () => {
         .sort((a, b) => new Date(b.driveDate).getTime() - new Date(a.driveDate).getTime());
 
       setCompletedDrives(pastDrives);
-    } catch (err) {
+    } catch (err: any) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return; // Ignore canceled requests
+      }
       console.error('Failed to load completed recruitment drives:', err);
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -111,17 +138,9 @@ export const History: React.FC = () => {
     new Set(completedDrives.map((d) => d.company?.name).filter(Boolean))
   ) as string[];
 
-  // Filter completed drives
+  // Filter completed drives by company if a filter is set
   const filteredDrives = completedDrives.filter((d) => {
-    const term = searchTerm.toLowerCase();
-    const companyMatch = d.company?.name?.toLowerCase().includes(term);
-    const roleMatch = d.role?.toLowerCase().includes(term);
-    const locationMatch = d.jobLocation?.toLowerCase().includes(term);
-    const matchesSearch = !term || companyMatch || roleMatch || locationMatch;
-
-    const matchesCompany = companyFilter === 'ALL' || d.company?.name === companyFilter;
-
-    return matchesSearch && matchesCompany;
+    return companyFilter === 'ALL' || d.company?.name === companyFilter;
   });
 
   // Filter students within the selected drive drilldown
@@ -373,21 +392,33 @@ export const History: React.FC = () => {
                 ))}
               </select>
 
-              <div className="relative w-full sm:w-64">
+              <div className="relative w-full sm:w-64 flex items-center">
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
                 <Input
                   type="text"
                   placeholder="Search company, role..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 text-xs h-9"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  className="pl-9 pr-14 text-xs h-9"
                 />
+                <div className="absolute right-2 flex items-center gap-1">
+                  {isSearching && <div className="h-3 w-3 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin" />}
+                  {searchInput && !isSearching && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchInput('')}
+                      className="text-slate-400 hover:text-slate-600"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
 
           {/* Drives Table */}
-          {filteredDrives.length === 0 ? (
+          {completedDrives.length === 0 && !isLoading ? (
             <EmptyState
               icon={Briefcase}
               title="No Completed Drives Found"

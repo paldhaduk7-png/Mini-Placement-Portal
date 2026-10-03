@@ -103,15 +103,16 @@ export const ApplicationTable: React.FC<ApplicationTableProps> = ({
                   {formatDate(app.appliedAt)}
                 </TableCell>
                 <TableCell>
-                  {student?.resumeUrl ? (
+                  {app.resumeUrl ? (
                     <a
                       href={
-                        student.resumeUrl.startsWith('http://') || student.resumeUrl.startsWith('https://')
-                          ? student.resumeUrl
-                          : `${(import.meta.env.VITE_API_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5000'}${student.resumeUrl.startsWith('/') ? '' : '/'}${student.resumeUrl}`
+                        app.resumeUrl.startsWith('http://') || app.resumeUrl.startsWith('https://')
+                          ? app.resumeUrl
+                          : `${(import.meta.env.VITE_API_URL as string)?.replace(/\/api\/?$/, '') || 'http://localhost:5000'}${app.resumeUrl.startsWith('/') ? '' : '/'}${app.resumeUrl}`
                       }
                       target="_blank"
                       rel="noopener noreferrer"
+                      title={app.resumeFileName || 'View Resume'}
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded text-xs font-semibold transition-colors"
                     >
                       <FileText className="h-3.5 w-3.5" />

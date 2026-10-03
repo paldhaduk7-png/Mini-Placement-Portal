@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useDebounce } from '@/hooks/useDebounce';
 import companyService from '@/services/company.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +28,10 @@ import type { Company } from '@/types/company';
 export const Companies: React.FC = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const [searchInput, setSearchInput] = useState('');
+  const debouncedSearch = useDebounce(searchInput, 500);
   
   // Add Company Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -39,21 +43,43 @@ export const Companies: React.FC = () => {
   // Delete State
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   useEffect(() => {
     loadCompanies();
-  }, []);
+  }, [debouncedSearch]);
 
   const loadCompanies = async () => {
-    setIsLoading(true);
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    if (companies.length === 0) {
+      setIsLoading(true);
+    } else {
+      setIsSearching(true);
+    }
+    
     try {
-      const res: any = await companyService.getAllCompanies();
+      const params: any = {};
+      if (debouncedSearch.trim().length >= 3) {
+        params.search = debouncedSearch.trim();
+      }
+      
+      const res: any = await companyService.getAllCompanies(params, controller.signal);
       const list = Array.isArray(res) ? res : res?.data || res?.companies || [];
       setCompanies(list);
     } catch (err: any) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+        return; // Ignore canceled requests
+      }
       toast.error(err.message || 'Failed to load companies.');
     } finally {
       setIsLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -103,10 +129,6 @@ export const Companies: React.FC = () => {
     }
   };
 
-  const filteredCompanies = companies.filter((c) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   if (isLoading && companies.length === 0) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -127,15 +149,27 @@ export const Companies: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="relative w-48 sm:w-64">
+          <div className="relative w-48 sm:w-64 flex items-center">
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               type="text"
               placeholder="Search companies..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 text-xs h-9"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="pl-9 pr-14 text-xs h-9"
             />
+            <div className="absolute right-2 flex items-center gap-1">
+              {isSearching && <div className="h-3 w-3 rounded-full border-2 border-slate-300 border-t-blue-500 animate-spin" />}
+              {searchInput && !isSearching && (
+                <button
+                  type="button"
+                  onClick={() => setSearchInput('')}
+                  className="text-slate-400 hover:text-slate-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+              )}
+            </div>
           </div>
 
           <Button
@@ -149,7 +183,7 @@ export const Companies: React.FC = () => {
       </div>
 
       {/* Companies Table matching reference design */}
-      {filteredCompanies.length === 0 ? (
+      {companies.length === 0 && !isLoading ? (
         <EmptyState
           icon={Building2}
           title="No Companies Found"
@@ -172,7 +206,7 @@ export const Companies: React.FC = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCompanies.map((comp, index) => (
+              {companies.map((comp, index) => (
                 <TableRow key={comp.id} className="hover:bg-slate-50/70 transition-colors">
                   <TableCell className="text-center font-medium text-slate-400 text-xs">
                     {index + 1}
