@@ -3,8 +3,8 @@ import { RecruitmentDrive, EligibilityResult } from '../types/drive'
 
 export const driveService = {
   // TPO Drive Management
-  async getAllDrives(params?: any): Promise<{ success?: boolean; count?: number; data: RecruitmentDrive[] }> {
-    const response = await api.get('/tpo/drives', { params })
+  async getAllDrives(params?: any, signal?: AbortSignal): Promise<{ success?: boolean; count?: number; data: RecruitmentDrive[] }> {
+    const response = await api.get('/tpo/drives', { params, signal })
     return response.data
   },
 

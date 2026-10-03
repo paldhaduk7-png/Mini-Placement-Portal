@@ -2,8 +2,8 @@ import api from './api'
 import { Company } from '../types/company'
 
 export const companyService = {
-  async getAllCompanies(): Promise<{ success?: boolean; count?: number; data: Company[] }> {
-    const response = await api.get('/tpo/companies')
+  async getAllCompanies(params?: { search?: string }, signal?: AbortSignal): Promise<{ success?: boolean; count?: number; data: Company[] }> {
+    const response = await api.get('/tpo/companies', { params, signal })
     return response.data
   },
 

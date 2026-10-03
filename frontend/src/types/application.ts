@@ -18,6 +18,12 @@ export interface Application {
   isCurrentPlacement?: boolean
   updatedAt: string
 
+  // Per-application resume (NOT student-level resume)
+  resumeUrl?: string | null
+  resumeFileName?: string | null
+  resumePath?: string | null
+  hasResume?: boolean
+
   student?: Student
   drive?: RecruitmentDrive
   interviews?: Interview[]
@@ -43,4 +49,3 @@ export interface PlacementStatus {
   selectedPackage: number | null
   minimumNextPackage: number | null
 }
-

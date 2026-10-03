@@ -35,8 +35,8 @@ export const studentService = {
   },
 
   // TPO student management
-  async getAllStudents(): Promise<{ success?: boolean; count?: number; data: Student[] }> {
-    const response = await api.get('/tpo/students')
+  async getAllStudents(params?: { search?: string, department?: string, studentType?: string, verificationStatus?: string }, signal?: AbortSignal): Promise<{ success?: boolean; count?: number; data: Student[] }> {
+    const response = await api.get('/tpo/students', { params, signal })
     return response.data
   },
 

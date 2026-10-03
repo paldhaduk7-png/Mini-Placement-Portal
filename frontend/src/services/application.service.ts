@@ -2,9 +2,16 @@ import api from './api'
 import { Application, PlacementStatus } from '../types/application'
 
 export const applicationService = {
-  // Student apply to drive
-  async applyToDrive(driveId: string): Promise<{ success: boolean; message: string; data: any }> {
-    const response = await api.post(`/student/drives/${driveId}/apply`)
+  // Student apply to drive — sends multipart/form-data with the resume PDF
+  async applyToDrive(
+    driveId: string,
+    resumeFile: File
+  ): Promise<{ success: boolean; message: string; data: any }> {
+    const formData = new FormData()
+    formData.append('resume', resumeFile)
+    const response = await api.post(`/student/drives/${driveId}/apply`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
     return response.data
   },
 
@@ -16,6 +23,15 @@ export const applicationService = {
 
   async getMyApplicationById(id: string): Promise<{ success: boolean; data: Application }> {
     const response = await api.get<{ success: boolean; data: Application }>(`/student/applications/${id}`)
+    return response.data
+  },
+
+  // Get resume URL for a specific application (student: own only)
+  async getApplicationResume(id: string): Promise<{
+    success: boolean
+    data: { applicationId: string; resumeUrl: string; resumeFileName: string | null; hasResume: boolean }
+  }> {
+    const response = await api.get(`/student/applications/${id}/resume`)
     return response.data
   },
 
@@ -32,15 +48,26 @@ export const applicationService = {
     driveId?: string
     status?: string
     studentId?: string
-  }): Promise<{ success: boolean; data: Application[] }> {
+    search?: string
+  }, signal?: AbortSignal): Promise<{ success: boolean; data: Application[] }> {
     const response = await api.get<{ success: boolean; data: Application[] }>('/tpo/applications', {
       params,
+      signal
     })
     return response.data
   },
 
   async getTpoApplicationById(id: string): Promise<{ success: boolean; data: Application }> {
     const response = await api.get<{ success: boolean; data: Application }>(`/tpo/applications/${id}`)
+    return response.data
+  },
+
+  // Get resume URL for a specific application (TPO access)
+  async getTpoApplicationResume(id: string): Promise<{
+    success: boolean
+    data: { applicationId: string; resumeUrl: string; resumeFileName: string | null; hasResume: boolean }
+  }> {
+    const response = await api.get(`/tpo/applications/${id}/resume`)
     return response.data
   },
 
