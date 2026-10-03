@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Role } from '@prisma/client';
-import { ApplicationController } from '../controllers/application.controller';
+import { ApplicationController, uploadApplicationResumeMulter } from '../controllers/application.controller';
 import { authenticateToken } from '../middleware/auth.middleware';
 import { requireRole } from '../middleware/role.middleware';
 
@@ -8,10 +8,12 @@ import { requireRole } from '../middleware/role.middleware';
 export const studentDriveApplicationRouter = Router();
 
 // POST /api/student/drives/:id/apply
+// Accepts multipart/form-data with a `resume` PDF file
 studentDriveApplicationRouter.post(
   '/:id/apply',
   authenticateToken,
   requireRole(Role.STUDENT),
+  uploadApplicationResumeMulter.single('resume'),
   ApplicationController.applyToDrive
 );
 
@@ -32,6 +34,14 @@ studentApplicationRouter.get(
   authenticateToken,
   requireRole(Role.STUDENT),
   ApplicationController.getPlacementStatus
+);
+
+// GET /api/student/applications/:id/resume
+studentApplicationRouter.get(
+  '/:id/resume',
+  authenticateToken,
+  requireRole(Role.STUDENT),
+  ApplicationController.getApplicationResume
 );
 
 // GET /api/student/applications/:id
@@ -59,6 +69,14 @@ tpoApplicationRouter.get(
   authenticateToken,
   requireRole(Role.TPO),
   ApplicationController.exportApplicationsCsv
+);
+
+// GET /api/tpo/applications/:id/resume
+tpoApplicationRouter.get(
+  '/:id/resume',
+  authenticateToken,
+  requireRole(Role.TPO),
+  ApplicationController.getApplicationResume
 );
 
 // GET /api/tpo/applications/:id

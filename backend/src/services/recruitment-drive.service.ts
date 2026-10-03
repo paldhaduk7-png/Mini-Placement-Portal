@@ -394,12 +394,13 @@ export class RecruitmentDriveService {
       filterStatus = uppercaseStatus;
     }
 
-    if (filters?.search?.trim()) {
+    if (filters?.search?.trim() && filters.search.trim().length >= 3) {
       const term = filters.search.trim();
       where.AND.push({
         OR: [
           { role: { contains: term, mode: 'insensitive' } },
           { company: { name: { contains: term, mode: 'insensitive' } } },
+          { jobLocation: { contains: term, mode: 'insensitive' } },
         ]
       });
     }

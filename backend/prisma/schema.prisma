@@ -170,20 +170,25 @@ model RecruitmentDrive {
 // ==========================================
 
 model Application {
-  id        String            @id @default(uuid())
-  studentId String
-  driveId   String
-  appliedAt DateTime          @default(now())
-  status    ApplicationStatus @default(APPLIED)
-  remarks   String?
-  updatedAt DateTime          @updatedAt
+  id             String            @id @default(uuid())
+  studentId      String
+  driveId        String
+  appliedAt      DateTime          @default(now())
+  status         ApplicationStatus @default(APPLIED)
+  remarks        String?
+  updatedAt      DateTime          @updatedAt
 
-  student   Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  drive     RecruitmentDrive  @relation(fields: [driveId], references: [id], onDelete: Cascade)
+  // Resume attached to this specific application
+  resumeUrl      String?
+  resumeFileName String?
+  resumePath     String?
+
+  student        Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  drive          RecruitmentDrive  @relation(fields: [driveId], references: [id], onDelete: Cascade)
 
   // Prevents duplicate applications
   @@unique([studentId, driveId])
-  
+
   isCurrentPlacement Boolean @default(false)
   interviews         Interview[]
 }

@@ -73,17 +73,39 @@ export class TpoStudentService {
     department?: string;
     studentType?: StudentType;
     verificationStatus?: VerificationStatus;
+    search?: string;
   }) {
     const studentWhere: any = {};
     if (filters?.department) studentWhere.department = filters.department;
     if (filters?.studentType) studentWhere.studentType = filters.studentType;
     if (filters?.verificationStatus) studentWhere.verificationStatus = filters.verificationStatus;
 
+    const userWhere: any = {
+      role: 'STUDENT',
+    };
+
+    if (Object.keys(studentWhere).length > 0) {
+      userWhere.student = studentWhere;
+    }
+
+    if (filters?.search && filters.search.trim().length >= 3) {
+      const q = filters.search.trim();
+      userWhere.OR = [
+        { email: { contains: q, mode: 'insensitive' } },
+        {
+          student: {
+            OR: [
+              { fullName: { contains: q, mode: 'insensitive' } },
+              { phone: { contains: q, mode: 'insensitive' } },
+              { department: { contains: q, mode: 'insensitive' } },
+            ]
+          }
+        }
+      ];
+    }
+
     const users = await prisma.user.findMany({
-      where: {
-        role: 'STUDENT',
-        student: Object.keys(studentWhere).length > 0 ? studentWhere : undefined,
-      },
+      where: userWhere,
       orderBy: { createdAt: 'desc' },
       include: {
         student: true,

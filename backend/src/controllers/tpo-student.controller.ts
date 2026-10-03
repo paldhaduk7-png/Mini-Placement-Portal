@@ -9,10 +9,11 @@ export class TpoStudentController {
    */
   static async getAllStudents(req: Request, res: Response): Promise<void> {
     try {
-      const { department, studentType, verificationStatus } = req.query;
+      const { department, studentType, verificationStatus, search } = req.query;
 
       const filters: any = {};
       if (typeof department === 'string') filters.department = department;
+      if (typeof search === 'string') filters.search = search;
       if (studentType === StudentType.REGULAR || studentType === StudentType.D2D) {
         filters.studentType = studentType;
       }

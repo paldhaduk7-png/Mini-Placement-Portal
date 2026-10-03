@@ -6,6 +6,9 @@ export interface ApplyToDriveResult {
   id: string;
   status: ApplicationStatus;
   appliedAt: Date;
+  resumeFileName: string | null;
+  resumeUrl: string | null;
+  hasResume: boolean;
   drive: {
     id: string;
     role: string;
@@ -28,11 +31,21 @@ export interface TpoApplicationFilter {
   applicationIds?: string[] | string;
 }
 
+export interface ResumeUploadInput {
+  buffer: Buffer;
+  originalName: string;
+}
+
 export class ApplicationService {
   /**
    * STUDENT: Apply to a recruitment drive
+   * resume param is required: { buffer, originalName }
    */
-  static async applyToDrive(userId: string, driveId: string): Promise<ApplyToDriveResult> {
+  static async applyToDrive(
+    userId: string,
+    driveId: string,
+    resume: ResumeUploadInput
+  ): Promise<ApplyToDriveResult> {
     // 1. Fetch authenticated student profile
     const student = await prisma.student.findUnique({
       where: { userId },
@@ -105,9 +118,10 @@ export class ApplicationService {
       throw error;
     }
 
-    // 5. Create application with status = APPLIED and remarks = null
+    // 5. Create application first (to get applicationId for the storage path)
+    let application: any;
     try {
-      const application = await prisma.application.create({
+      application = await prisma.application.create({
         data: {
           student: { connect: { id: student.id } },
           drive: { connect: { id: drive.id } },
@@ -129,15 +143,8 @@ export class ApplicationService {
           },
         },
       });
-
-      return {
-        id: application.id,
-        status: application.status,
-        appliedAt: application.appliedAt,
-        drive: application.drive,
-      };
     } catch (err: any) {
-      // Handle race condition or unique constraint violation code safely
+      // Handle race condition or unique constraint violation
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         const error: any = new Error('You have already applied to this recruitment drive.');
         error.statusCode = 409;
@@ -145,6 +152,42 @@ export class ApplicationService {
       }
       throw err;
     }
+
+    // 6. Upload resume to Cloudinary under per-application path
+    let resumeUrl: string | null = null;
+    let resumeFileName: string | null = null;
+    let resumePath: string | null = null;
+
+    try {
+      const { uploadResumeFile } = await import('../config/cloudinary');
+      const folder = `applications/${student.id}/${application.id}`;
+      const uploadResult = await uploadResumeFile(resume.buffer, resume.originalName, folder);
+      resumeUrl = uploadResult.url;
+      resumeFileName = resume.originalName;
+      resumePath = folder;
+
+      // 7. Update application with resume info
+      await prisma.application.update({
+        where: { id: application.id },
+        data: { resumeUrl, resumeFileName, resumePath },
+      });
+    } catch (uploadErr: any) {
+      // Upload failed — delete the orphan application to keep data clean
+      await prisma.application.delete({ where: { id: application.id } }).catch(() => {});
+      const error: any = new Error('Resume upload failed. Please try again.');
+      error.statusCode = 502;
+      throw error;
+    }
+
+    return {
+      id: application.id,
+      status: application.status,
+      appliedAt: application.appliedAt,
+      resumeFileName,
+      resumeUrl,
+      hasResume: !!resumeUrl,
+      drive: application.drive,
+    };
   }
 
   /**
@@ -171,6 +214,10 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        // Per-application resume fields
+        resumeUrl: true,
+        resumeFileName: true,
+        resumePath: true,
         interviews: {
           orderBy: { createdAt: 'desc' },
           take: 1
@@ -203,6 +250,7 @@ export class ApplicationService {
 
     return applications.map((app) => ({
       ...app,
+      hasResume: !!app.resumeUrl,
       isCurrentPlacement:
         app.status === ApplicationStatus.SELECTED && currentSelected
           ? app.id === currentSelected.id
@@ -237,6 +285,10 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        // Per-application resume fields
+        resumeUrl: true,
+        resumeFileName: true,
+        resumePath: true,
         interviews: {
           orderBy: { createdAt: 'desc' },
           take: 1
@@ -372,6 +424,16 @@ export class ApplicationService {
       where.status = validatedStatus;
     }
 
+    if (filters.search?.trim() && filters.search.trim().length >= 3) {
+      const q = filters.search.trim();
+      where.OR = [
+        { student: { fullName: { contains: q, mode: 'insensitive' } } },
+        { student: { user: { email: { contains: q, mode: 'insensitive' } } } },
+        { drive: { company: { name: { contains: q, mode: 'insensitive' } } } },
+        { drive: { role: { contains: q, mode: 'insensitive' } } },
+      ];
+    }
+
     const applications = await prisma.application.findMany({
       where,
       select: {
@@ -381,6 +443,10 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        // Per-application resume fields
+        resumeUrl: true,
+        resumeFileName: true,
+        resumePath: true,
         interviews: {
           orderBy: { createdAt: 'desc' },
           take: 1
@@ -397,9 +463,6 @@ export class ApplicationService {
             studentType: true,
             currentCgpa: true,
             verificationStatus: true,
-            resumeUrl: true,
-            resumeFileName: true,
-            resumeUploadedAt: true,
           },
         },
         drive: {
@@ -470,6 +533,10 @@ export class ApplicationService {
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
       interviews: app.interviews,
+      // Per-application resume (NOT student-level resume)
+      resumeUrl: app.resumeUrl,
+      resumeFileName: app.resumeFileName,
+      hasResume: !!app.resumeUrl,
       student: {
         id: app.student.id,
         fullName: app.student.fullName,
@@ -479,9 +546,6 @@ export class ApplicationService {
         studentType: app.student.studentType,
         currentCgpa: app.student.currentCgpa,
         verificationStatus: app.student.verificationStatus,
-        resumeUrl: app.student.resumeUrl,
-        resumeFileName: app.student.resumeFileName,
-        resumeUploadedAt: app.student.resumeUploadedAt,
       },
       drive: {
         id: app.drive.id,
@@ -506,6 +570,10 @@ export class ApplicationService {
         isCurrentPlacement: true,
         appliedAt: true,
         updatedAt: true,
+        // Per-application resume fields
+        resumeUrl: true,
+        resumeFileName: true,
+        resumePath: true,
         interviews: { orderBy: { createdAt: 'desc' }, take: 1 },
         student: {
           select: {
@@ -523,9 +591,6 @@ export class ApplicationService {
             d2dCgpa: true,
             activeBacklogs: true,
             verificationStatus: true,
-            resumeUrl: true,
-            resumeFileName: true,
-            resumeUploadedAt: true,
           },
         },
         drive: {
@@ -585,6 +650,10 @@ export class ApplicationService {
       appliedAt: app.appliedAt,
       updatedAt: app.updatedAt,
       interviews: app.interviews,
+      // Per-application resume (NOT student-level resume)
+      resumeUrl: app.resumeUrl,
+      resumeFileName: app.resumeFileName,
+      hasResume: !!app.resumeUrl,
       student: {
         id: app.student.id,
         fullName: app.student.fullName,
@@ -598,11 +667,61 @@ export class ApplicationService {
         d2dCgpa: app.student.d2dCgpa,
         activeBacklogs: app.student.activeBacklogs,
         verificationStatus: app.student.verificationStatus,
-        resumeUrl: app.student.resumeUrl,
-        resumeFileName: app.student.resumeFileName,
-        resumeUploadedAt: app.student.resumeUploadedAt,
       },
       drive: app.drive,
+    };
+  }
+
+  /**
+   * STUDENT/TPO: Get the resume URL for a specific application.
+   * - STUDENT: can only access their own application's resume.
+   * - TPO: can access any application's resume.
+   */
+  static async getApplicationResume(
+    applicationId: string,
+    userId: string,
+    userRole: 'STUDENT' | 'TPO'
+  ) {
+    // First verify application exists (prevent info leakage)
+    const application = await prisma.application.findUnique({
+      where: { id: applicationId },
+      select: {
+        id: true,
+        resumeUrl: true,
+        resumeFileName: true,
+        studentId: true,
+        student: {
+          select: { userId: true },
+        },
+      },
+    });
+
+    if (!application) {
+      const error: any = new Error(`Application with ID '${applicationId}' was not found.`);
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // STUDENT: enforce ownership
+    if (userRole === 'STUDENT') {
+      if (application.student.userId !== userId) {
+        const error: any = new Error('Access denied. You can only view your own application resumes.');
+        error.statusCode = 403;
+        throw error;
+      }
+    }
+
+    if (!application.resumeUrl) {
+      const error: any = new Error('No resume was found for this application.');
+      error.statusCode = 404;
+      throw error;
+    }
+
+    return {
+      applicationId: application.id,
+      resumeUrl: application.resumeUrl,
+      resumeFileName: application.resumeFileName,
+      hasResume: true,
     };
   }
 
@@ -951,10 +1070,12 @@ export class ApplicationService {
             currentCgpa: true,
             activeBacklogs: true,
             verificationStatus: true,
-            resumeUrl: true,
           },
         },
-        drive: {
+      // Per-application resume fields
+      resumeUrl: true,
+      resumeFileName: true,
+      drive: {
           select: {
             id: true,
             role: true,
@@ -1054,7 +1175,7 @@ export class ApplicationService {
         escapeCsv(interviewDateStr),
         escapeCsv(latestInterview?.interviewTime || '-'),
         escapeCsv(locationOrLink),
-        escapeCsv(app.student?.resumeUrl ? 'Available' : 'Not Uploaded'),
+        escapeCsv(app.resumeUrl ? 'Available' : 'Not Uploaded'),
       ].join(',');
     });
 

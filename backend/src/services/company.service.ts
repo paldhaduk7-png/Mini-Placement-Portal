@@ -77,8 +77,14 @@ export class CompanyService {
   /**
    * Retrieve all companies with recruitment drive count.
    */
-  static async getAllCompanies() {
+  static async getAllCompanies(filters?: { search?: string }) {
+    const where: any = {};
+    if (filters?.search && filters.search.trim().length >= 3) {
+      where.name = { contains: filters.search.trim(), mode: 'insensitive' };
+    }
+
     const companies = await prisma.company.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
       include: {
         _count: {

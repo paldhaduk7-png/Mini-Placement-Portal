@@ -12,20 +12,25 @@ cloudinary.config({
 
 /**
  * Uploads a raw file (e.g. PDF resume) to Cloudinary or falls back to local storage.
+ * @param folder - optional Cloudinary folder (default: 'mini-placement-portal/resumes')
  */
 export async function uploadResumeFile(
   fileBuffer: Buffer,
-  originalName: string
+  originalName: string,
+  folder: string = 'mini-placement-portal/resumes'
 ): Promise<{ url: string }> {
   // 1. Try Cloudinary raw upload if credentials exist
   if (config.cloudinaryCloudName && config.cloudinaryApiKey && config.cloudinaryApiSecret) {
     try {
       const cleanName = path.parse(originalName).name.replace(/[^a-zA-Z0-9_-]/g, '_');
       const publicId = `${cleanName}_${Date.now()}`;
+      const cloudFolder = folder.startsWith('mini-placement-portal/')
+        ? folder
+        : `mini-placement-portal/${folder}`;
       const result = await new Promise<{ secureUrl: string }>((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           {
-            folder: 'mini-placement-portal/resumes',
+            folder: cloudFolder,
             resource_type: 'raw',
             public_id: `${publicId}.pdf`,
           },

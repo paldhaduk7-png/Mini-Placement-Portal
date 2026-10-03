@@ -108,7 +108,11 @@ export class CompanyController {
    */
   static async getAllCompanies(req: Request, res: Response): Promise<void> {
     try {
-      const companies = await CompanyService.getAllCompanies();
+      const { search } = req.query;
+      const filters: any = {};
+      if (typeof search === 'string') filters.search = search;
+
+      const companies = await CompanyService.getAllCompanies(filters);
       res.status(200).json({
         success: true,
         count: companies.length,
