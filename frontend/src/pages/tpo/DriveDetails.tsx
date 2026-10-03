@@ -261,7 +261,7 @@ export const DriveDetails: React.FC = () => {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-xl font-bold tracking-tight text-white">
-                  {company?.name || 'Company'} - {drive?.role || 'Role'}
+                  {company?.name || 'Company'} - {drive?.roles && drive.roles.length > 0 ? (drive.roles.length === 1 ? drive.roles[0].title : 'Multiple Roles') : 'Role'}
                 </h1>
                 <Badge
                   variant={
@@ -279,7 +279,7 @@ export const DriveDetails: React.FC = () => {
               </div>
               <div className="flex flex-wrap items-center gap-4 mt-1 text-xs text-slate-300">
                 <span className="text-emerald-400 font-bold">
-                  {formatCurrencyLPA(drive?.ctc || 0)}
+                  {drive?.roles && drive.roles.length > 0 ? (drive.roles.length === 1 ? formatCurrencyLPA(drive.roles[0].minCTC || 0) : 'Multiple Packages') : 'N/A'}
                 </span>
                 <span className="flex items-center gap-1">
                   <Calendar className="h-3.5 w-3.5" />
@@ -343,7 +343,7 @@ export const DriveDetails: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-base font-bold text-slate-900">
-                    Eligible Students - {company?.name} ({drive?.role})
+                    Eligible Students - {company?.name} ({drive?.roles && drive.roles.length > 0 ? (drive.roles.length === 1 ? drive.roles[0].title : 'Multiple Roles') : 'Role'})
                   </h3>
                   <p className="text-xs text-slate-500">
                     Students evaluated by the backend engine meeting all academic criteria for this drive.
@@ -493,9 +493,9 @@ export const DriveDetails: React.FC = () => {
                                 <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded w-max">
                                   CURRENT PLACEMENT
                                 </span>
-                                {drive?.ctc && (
+                                {app.driveRole?.maxCTC && (
                                   <span className="text-[10px] font-semibold text-slate-500">
-                                    {formatCurrencyLPA(drive.ctc)}
+                                    {formatCurrencyLPA(app.driveRole.maxCTC)}
                                   </span>
                                 )}
                               </div>
@@ -505,9 +505,9 @@ export const DriveDetails: React.FC = () => {
                                 <span className="text-[10px] font-medium text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded w-max">
                                   REPLACED
                                 </span>
-                                {drive?.ctc && (
+                                {app.driveRole?.maxCTC && (
                                   <span className="text-[10px] font-semibold text-slate-400">
-                                    {formatCurrencyLPA(drive.ctc)}
+                                    {formatCurrencyLPA(app.driveRole.maxCTC)}
                                   </span>
                                 )}
                               </div>

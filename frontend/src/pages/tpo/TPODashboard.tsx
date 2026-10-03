@@ -240,7 +240,7 @@ export const TPODashboard: React.FC = () => {
                         {app.drive?.company?.name || 'Company'}
                       </TableCell>
                       <TableCell className="text-xs text-slate-600 font-medium">
-                        {app.drive?.role || 'Role'}
+                        {app.drive?.roles?.[0]?.title || 'Role'}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(app.status)}
